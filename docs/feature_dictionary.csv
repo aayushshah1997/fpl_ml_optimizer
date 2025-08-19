@@ -1,0 +1,71 @@
+feature_name,type,description,applies_to,source,category,optional
+avail_prob,numeric,Probability to play (from FPL status/chance_of_playing_next_round),ALL,FPL,Global,false
+r3_minutes,rolling,Recent minutes (sum over 3 matches),ALL,FPL,Global,false
+r5_minutes,rolling,Recent minutes (sum over 5 matches),ALL,FPL,Global,false
+r8_minutes,rolling,Recent minutes (sum over 8 matches),ALL,FPL,Global,false
+starts_pct,numeric,Share of starts over recent matches,ALL,FPL,Global,false
+congestion_days,numeric,Days since last appearance (fatigue/rotation proxy),ALL,Derived,Global,false
+is_pen_taker,binary,Confirmed on penalties,ALL,Roles merge,Global,false
+penalty_share,numeric,Share of penalties,ALL,Roles merge,Global,false
+is_fk_taker,binary,Takes direct free kicks,ALL,Roles merge,Global,false
+fk_share,numeric,Share of free kicks,ALL,Roles merge,Global,false
+corner_share,numeric,Share of corners,ALL,Roles merge,Global,false
+setpiece_proxy,numeric,ICT/BPS/creativity + position blend (0-1),ALL,Derived,Global,false
+setpiece_keyword,binary,News text mentions pens/corners/fks,ALL,Derived,Global,false
+r3_gf,rolling,Team goals for (recent 3 matches),ALL,FPL,Global,false
+r5_gf,rolling,Team goals for (recent 5 matches),ALL,FPL,Global,false
+r3_ga,rolling,Team goals against (recent 3 matches),ALL,FPL,Global,false
+r5_ga,rolling,Team goals against (recent 5 matches),ALL,FPL,Global,false
+r5_cs,rolling,Team clean sheet rate (recent 5 matches),ALL,FPL,Global,false
+opp_r5_ga,rolling,Opponent goals against (recent 5 matches),ALL,FPL,Global,false
+opp_r5_cs,rolling,Opponent clean sheet rate (recent 5 matches),ALL,FPL,Global,false
+team_strength,numeric,Team strength index (bootstrap),ALL,FPL,Global,false
+opp_strength,numeric,Opponent strength index (bootstrap),ALL,FPL,Global,false
+home_adv,binary,1 if home match else 0,ALL,Derived,Global,false
+fixture_diff,numeric,Difficulty from team/opponent strengths,ALL,Derived,Global,false
+now_cost,numeric,Current price (tenths of £m),ALL,FPL,Global,false
+selected_by_percent,numeric,Ownership percentage,ALL,FPL,Global,false
+price_delta_7d,numeric,Price change last 7 days (tenths),ALL,FPL,Global,false
+own_pct_delta_7d,numeric,Ownership change last 7 days (percentage points),ALL,FPL,Global,false
+ti_to_ratio_7d,numeric,Transfers-in : transfers-out ratio 7d,ALL,FPL,Global,false
+win_prob,numeric,Win probability (fixture),ALL,Odds CSV,Global,false
+team_xg_implied,numeric,Team implied xG from odds,ALL,Odds CSV,Global,false
+opp_xg_implied,numeric,Opponent implied xG from odds,ALL,Odds CSV,Global,false
+h2h_points_mean,numeric,Head-to-head average points vs opponent,ALL,Derived,Global,false
+h2h_goals_mean,numeric,Head-to-head average goals vs opponent,ALL,Derived,Global,false
+h2h_xg_mean,numeric,Head-to-head average xG vs opponent,ALL,Derived,Global,false
+league_id_src,categorical,Source league id for match rows,ALL,FBR,Global,false
+league_strength_mult,numeric,Strength multiplier applied to non-PL per-90,ALL,Derived,Global,false
+prior_points_cs,numeric,Cold-start shrink to global mean when minutes scarce,ALL,Derived,Global,false
+xg90_u,numeric,Expected goals per90 (unified),DEF/MID/FWD,FBR,Attacking,false
+xa90_u,numeric,Expected assists per90 (unified),DEF/MID/FWD,FBR,Attacking,false
+shots90,numeric,Shots per90,DEF/MID/FWD,FBR,Attacking,false
+sot90,numeric,Shots on target per90,DEF/MID/FWD,FBR,Attacking,false
+kp90,numeric,Key passes per90,DEF/MID/FWD,FBR,Attacking,false
+bc90,numeric,Big chances per90,DEF/MID/FWD,FBR,Attacking,false
+touches_box_per90,numeric,Touches inside box per90,DEF/MID/FWD,FBR,Attacking,false
+r3_goals,rolling,Recent goals (3 matches),DEF/MID/FWD,FPL/FBR,Attacking,false
+r5_goals,rolling,Recent goals (5 matches),DEF/MID/FWD,FPL/FBR,Attacking,false
+r8_goals,rolling,Recent goals (8 matches),DEF/MID/FWD,FPL/FBR,Attacking,false
+r3_assists,rolling,Recent assists (3 matches),DEF/MID/FWD,FPL/FBR,Attacking,false
+r5_assists,rolling,Recent assists (5 matches),DEF/MID/FWD,FPL/FBR,Attacking,false
+r8_assists,rolling,Recent assists (8 matches),DEF/MID/FWD,FPL/FBR,Attacking,false
+r3_sot,rolling,Recent shots on target (3 matches),DEF/MID/FWD,FBR,Attacking,false
+r5_sot,rolling,Recent shots on target (5 matches),DEF/MID/FWD,FBR,Attacking,false
+r3_xg,rolling,Recent expected goals (3 matches),DEF/MID/FWD,FBR,Attacking,false
+r5_xg,rolling,Recent expected goals (5 matches),DEF/MID/FWD,FBR,Attacking,false
+r3_xa,rolling,Recent expected assists (3 matches),DEF/MID/FWD,FBR,Attacking,false
+r5_xa,rolling,Recent expected assists (5 matches),DEF/MID/FWD,FBR,Attacking,false
+cs_prob,numeric,Clean sheet probability,GK/DEF,Odds CSV,Defensive,false
+xgc_team90,numeric,Team expected goals conceded per90,GK/DEF,FBR/Derived,Defensive,false
+saves90,numeric,Saves per90,GK,FBR,GK,false
+save_pct,numeric,Save percentage,GK,FBR,GK,false
+bps90,numeric,BPS per90,GK/DEF,FPL/Derived,Defensive,false
+press_events90,numeric,Press events per90,DEF/MID/FWD,FBR,Attacking,true
+progressive_runs90,numeric,Progressive runs per90,DEF/MID/FWD,FBR,Attacking,true
+carries_final_third90,numeric,Carries in final third per90,DEF/MID/FWD,FBR,Attacking,true
+setpiece_shot_share,numeric,Share of shots from setpieces,DEF/MID/FWD,FBR,Attacking,true
+captaincy_share,numeric,Club-level captaincy estimate from historical armband,ALL,Derived,Global,true
+injury_prob_model,numeric,Injury probability beyond FPL flag,ALL,Derived,Global,true
+price_rise_prob_d1,numeric,Price rise probability day 1,ALL,Derived,Global,true
+price_rise_prob_d2,numeric,Price rise probability day 2,ALL,Derived,Global,true

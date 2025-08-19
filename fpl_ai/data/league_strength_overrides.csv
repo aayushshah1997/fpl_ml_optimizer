@@ -1,0 +1,8 @@
+league_id,strength
+# Example overrides for league strength multipliers
+# Add discovered leagues here with appropriate strength values
+# Format: league_id,strength_value
+# Examples:
+# 8,0.86   # Primeira Liga (Portugal)
+# 23,0.84  # Jupiler Pro League (Belgium)
+# 39,0.80  # Süper Lig (Turkey)

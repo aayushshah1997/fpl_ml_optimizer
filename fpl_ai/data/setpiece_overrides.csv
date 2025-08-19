@@ -1,0 +1,4 @@
+player_name,team,pen_share,fk_share,corner_share,priority,notes
+# Manual overrides for set piece takers (highest priority)
+# Mohamed Salah,Liverpool,0.95,0.0,0.0,1,Primary penalty taker
+# Reece James,Chelsea,0.0,0.8,0.0,1,Primary free kick taker when fit

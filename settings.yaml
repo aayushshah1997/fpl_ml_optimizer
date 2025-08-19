@@ -1,0 +1,354 @@
+# =========================
+# FPL AI Configuration
+# =========================
+
+# --- TRAINING WINDOW & STAGING ---
+training:
+  # How much data to train on (before the previous GW):
+  # By default: last 3 full PL seasons + current season-to-date (= 4 seasons back).
+  seasons_back: 4                  # includes current + previous 3
+  league_id: 9                     # PL (FBR league ID)
+  extra_leagues: "auto"        # instead of fixed list; discover dynamically from FBR
+  extra_leagues_seasons_back: 2    # pull up to last 2 seasons for priors
+  rolling_windows: [3,5,8]         # rolling window sizes for features
+  target:
+    name: "points_next"
+  staging:
+    mode: "auto"       # "auto" | "warm" | "full"
+    warm_until_gw: 8   # GW < 8 -> Warm Start; GW >= 8 -> Full ML
+  sample_weighting:
+    # w = exp(-lambda * games_ago) * season_boost * league_strength_factor
+    lambda_games: 0.08              # decay factor for game recency
+    current_season_boost: 1.3       # boost current season samples
+    last_season_boost: 1.1          # moderate boost for last season
+    older_seasons_boost: 0.7        # reduce weight for older seasons
+  league_strength:      # seed baselines; can be overridden/expanded on the fly
+    "9": 1.00           # PL baseline
+    "12": 0.92          # LaLiga
+    "11": 0.90          # Serie A
+    "20": 0.95          # Bundesliga
+    "13": 0.88          # Ligue 1
+    "10": 0.82          # Eredivisie
+    "8":  0.86          # Primeira Liga (Portugal)
+    "23": 0.84          # Jupiler Pro League (Belgium)
+    "39": 0.80          # Süper Lig (Turkey)
+    "53": 0.78          # MLS (USA)
+  unknown_league_default: 0.78   # fallback for unseen leagues
+  lowtier_uncertainty_bump: 0.15 # add to MC σ when league_strength < 0.85
+  sample_weight_min_mult: 0.6    # floor multiplier for very low tiers
+  sample_weight_curve:           # piecewise weight dampening by league strength
+    - [0.75, 0.60]
+    - [0.80, 0.70]
+    - [0.85, 0.85]
+    - [0.90, 0.95]
+    - [1.00, 1.00]
+  cold_start_shrink:
+    alpha_minutes: 600.0           # shrink strongly if few prior mins
+    global_mean_points: 3.5        # global mean for new players
+
+# --- MODELS ---
+modeling:
+  minutes:
+    enabled: true
+    lookbacks: [3,5,8]
+    min_cap: 0
+    max_cap: 90
+    features: ["starts_pct", "minutes_r3", "minutes_r5", "rotation_risk", "avail_prob"]
+  per_position:
+    enabled: true
+    positions: ["GK","DEF","MID","FWD"]
+  gbm:
+    n_estimators: 1200
+    learning_rate: 0.03
+    num_leaves: 63
+    min_data_in_leaf: 25
+    subsample: 0.8
+    colsample_bytree: 0.8
+    reg_alpha: 0.1
+    reg_lambda: 0.3
+    max_depth: -1
+    random_state: 42
+    verbose: -1
+    objective: "regression"
+    metric: "rmse"
+    boosting_type: "gbdt"
+  gbm_by_pos:           # optional, only used if provided or tuned; else fallback to modeling.gbm
+    GK: {}
+    DEF: {}
+    MID: {}
+    FWD: {}
+  calibration:
+    enabled: true
+    method: "isotonic"    # "isotonic" or "sigmoid"
+    window_gws: 8         # recent games for calibration
+    cv_folds: 5
+
+# --- EXTERNAL FEEDS ---
+fbrapi:
+  enabled: true
+  base_url: "https://fbrapi.com"
+  rate_limit_sec: 3.0
+  cache_dir: "cache/fbrapi"
+  timeout: 30
+  max_retries: 3
+
+# --- MANAGER DISCOVERY & ROTATION ENGINE ---
+competitions:
+  premier_league_id: "9"   # FBR/FBRef competition id for PL (change if different)
+  season_prev: "2024-2025" # previous season in FBR format
+  season_curr: "2025-2026" # current season in FBR format
+
+rotation_engine:
+  enabled: true
+  update_on_train: true        # recompute priors/metrics whenever we train for a new GW
+  min_matches_stable: 8        # once current-season matches >= this, favor current data
+  season_prev: "2024-2025"
+  season_curr: "2025-2026"
+  competition_pl_id: "9"       # PL comp id (FBR)
+  # weights to map empirical stats → prior (0..0.30)
+  weights:
+    xi_change_pct: 0.20        # % matches with >=3 XI changes
+    starts_variance: 0.10      # per-player start variance (normalized)
+    median_minutes_shortfall: 0.05  # (90 - median_mins)/90
+    bench_rate: 0.05           # DNP share among fit attackers
+  floor: 0.03
+  cap: 0.30
+
+managers:
+  enabled: true
+  manager_rotation_default: 0.05
+  csv_path: "data/manager_rotation_overrides.csv"   # output here
+  team_manager_csv: "data/team_manager_map.csv"     # team_id,team_name,manager (kept up to date)
+  overrides_csv: "data/manager_overrides.csv"       # optional (team_id,team_name,manager)
+
+feeds:
+  fbref: false                              # legacy support
+  odds_csv: "data/odds_team.csv"           # team odds file
+  setpieces:
+    enabled: true
+    overrides_path: "data/setpiece_overrides.csv"
+  setpiece_infer: true                     # EWMA inference
+  setpiece_roles: "data/setpiece_roles.csv"
+  community_roles:
+    enabled: true
+    sources:
+      - type: "csv"
+        path: "data/community_roles.csv"
+
+roles:
+  ewma_alpha: 0.75        # EWMA decay for role inference
+  prior_m: 6              # prior pseudo-matches for Bayesian smoothing
+  pen_threshold: 0.5      # minimum penalty share to be flagged
+  fk_threshold: 0.35      # minimum free kick share to be flagged
+  corner_threshold: 0.3   # minimum corner share to be flagged
+
+# --- RISK & PLANNING ---
+mc:
+  enabled: true
+  num_scenarios: 2000
+  seed: 42
+  risk_measure: "cvar"      # "var" or "cvar"
+  cvar_alpha: 0.2           # confidence level for CVaR
+  lambda_risk: 0.20         # risk penalty weight
+  minutes_uncertainty: 0.20 # std dev multiplier for minutes
+  correlation:
+    team_level: 0.25        # correlation within team
+    opponent_level: 0.15    # correlation vs same opponent
+  intl_minutes_uncertainty_add: 0.10  # additional uncertainty during international windows
+  manager_rotation_sigma_mult: 0.30   # uncertainty multiplier for rotation-prone managers
+
+chips:
+  allow_tc: true
+  allow_bb: true
+  allow_fh: true
+  allow_wc: true
+  simulate_future_gws: 10
+  assume_transfers_per_gw: 1
+  hit_cost: 4
+  fh_budget_buffer: 0.5     # extra budget buffer for FH
+  wc_budget: 100.0          # wildcard budget
+
+planner:
+  horizon_gws: 10
+  max_transfers_per_gw: 2
+  max_hits_per_gw: 2
+  consider_roll: true
+  risk_lambda: 0.2
+  mc:
+    scenarios: 1000
+    seed: 42
+    minutes_uncertainty: 0.20
+  shortlist:
+    per_pos: 20             # top N players per position to consider
+  future_fixtures_weight: 1.0  # weight for fixture difficulty
+  dgw_bonus: 0.5              # bonus for double gameweeks
+  formation_preferences: ["3-5-2", "3-4-3", "4-4-2", "4-3-3", "4-5-1"]
+
+# --- TRANSFER STRATEGY (auto-optimization) ---
+strategy:
+  horizon_gws: 10
+  allow_roll: true
+  max_transfers_per_gw: 2
+  max_hits_per_gw: 2
+  hit_cost: 4
+  bank_future_weight: 0.25      # utility of keeping £ for future upgrades
+  roll_threshold_points: 2.0    # if gain < threshold → roll
+  shortlist:
+    per_pos: 20                 # candidate pool size per position
+  price_model:
+    enabled: false              # optional future: expected price rises; off by default
+  chips:
+    allow_tc: true
+    allow_bb: true
+    allow_fh: true
+    allow_wc: true
+    simulate_future_gws: 10
+    fh_budget_buffer: 0.5
+    wc_budget: 100.0
+
+# --- BACKTEST & AUTO-TUNING ---
+backtest:
+  seasons: ["2021-2022","2022-2023","2023-2024","2024-2025"]  # 4y window
+  start_gw: 2
+  end_gw: 38
+  ewma_alpha: 0.85                  # recency weight for training samples
+  kfolds: 5                         # fallback CV inside-season when needed
+  parallel_jobs: 1                  # Optuna parallelism (adjust if CPU allows)
+  metric: "rmse"                    # for model selection; report extra metrics too
+  objective: "risk_adj_points"      # model selection for planning: total_points | hit_adj_points | risk_adj_points | sharpe_like
+  seed: 42
+
+autotune:
+  enabled: true
+  study_name: "fpl_auto_tune"
+  n_trials: 60                      # increase for deeper search
+  timeout_min: 60                   # stop after N minutes (guards)
+  pruner: "median"                  # median | none
+  persist_best_to: "artifacts/tuning/best_settings.yaml"
+  write_back_to_settings: false     # if true, overwrite settings.yaml after tuning
+
+captain:
+  policy: "mix"         # "mean" | "cvar" | "mix"
+  mix_lambda: 0.60      # weight on mean vs CVaR in mix policy (0..1), tuned in spaces
+  candidates: 5         # top-N by mean considered for captain choice
+  cvar_alpha: 0.20      # CVaR tail for captain evaluation (can reuse mc.cvar_alpha if omitted)
+
+spaces:
+  # LightGBM global parameters
+  modeling.gbm.learning_rate: [0.02, 0.03, 0.05]
+  modeling.gbm.num_leaves: [31, 63, 95, 127]
+  modeling.gbm.n_estimators: [600, 900, 1200, 1600]
+  modeling.gbm.subsample: [0.7, 0.8, 0.9]
+  modeling.gbm.colsample_bytree: [0.7, 0.8, 0.9]
+  modeling.gbm.min_data_in_leaf: [15, 25, 45]
+  modeling.gbm.reg_alpha: [0.0, 0.1, 0.3]
+  modeling.gbm.reg_lambda: [0.0, 0.3, 0.6]
+
+  # Per-position overrides (if not set in a trial, global modeling.gbm.* applies)
+  modeling.gbm_by_pos.GK.num_leaves: [31, 63]
+  modeling.gbm_by_pos.GK.learning_rate: [0.02, 0.03]
+  modeling.gbm_by_pos.DEF.num_leaves: [31, 63, 95]
+  modeling.gbm_by_pos.DEF.learning_rate: [0.02, 0.03, 0.05]
+  modeling.gbm_by_pos.MID.num_leaves: [63, 95, 127]
+  modeling.gbm_by_pos.MID.learning_rate: [0.02, 0.03, 0.05]
+  modeling.gbm_by_pos.FWD.num_leaves: [63, 95, 127]
+  modeling.gbm_by_pos.FWD.learning_rate: [0.02, 0.03, 0.05]
+
+  # Monte Carlo / risk
+  mc.cvar_alpha: [0.10, 0.15, 0.20, 0.25]
+  mc.lambda_risk: [0.10, 0.15, 0.20, 0.30]
+  mc.minutes_uncertainty: [0.12, 0.16, 0.20, 0.25]
+  mc.correlation.team_level: [0.15, 0.25, 0.30]
+  mc.correlation.opponent_level: [0.10, 0.15, 0.20]
+
+  # Captain strategy
+  captain.policy: ["mean","cvar","mix"]
+  captain.mix_lambda: [0.40, 0.50, 0.60, 0.70]
+
+  # Transfer strategy knobs
+  strategy.roll_threshold_points: [1.0, 2.0, 3.0, 4.0]
+  strategy.bank_future_weight: [0.10, 0.20, 0.25, 0.35]
+  strategy.hit_cost: [4, 8]  # some leagues run hits at 8 in experiments; default 4
+
+fixtures:
+  community_schedule:
+    enabled: false
+    path: "data/community_schedule.csv"
+  fdr_weights:
+    "1": 1.2    # Very easy
+    "2": 1.1    # Easy  
+    "3": 1.0    # Average
+    "4": 0.9    # Hard
+    "5": 0.8    # Very hard
+
+# --- INPUT/OUTPUT ---
+io:
+  out_dir: "artifacts"
+  cache_dir: "cache"
+  models_dir: "models"
+  logs_dir: "logs"
+  data_dir: "data"
+  league_strength_overrides_csv: "data/league_strength_overrides.csv"  # optional
+  league_seen_log: "cache/league_seen.json"
+
+# --- LOGGING ---
+logging:
+  level: "INFO"          # DEBUG, INFO, WARNING, ERROR
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  file_enabled: true
+  console_enabled: true
+  max_bytes: 10485760    # 10MB
+  backup_count: 5
+
+# --- API LIMITS ---
+api:
+  fpl:
+    rate_limit: 1.0      # seconds between requests
+    timeout: 30
+    max_retries: 3
+  fbr:
+    rate_limit: 3.0      # seconds between requests  
+    timeout: 30
+    max_retries: 3
+
+# --- FEATURE ENGINEERING ---
+features:
+  rolling_windows: [3, 5, 8]
+  per90_features: [
+    "goals", "assists", "clean_sheets", "goals_conceded", 
+    "yellow_cards", "red_cards", "saves", "bonus", 
+    "bps", "ict_index", "creativity", "influence", "threat",
+    "shots", "shots_on_target", "key_passes", "big_chances_created",
+    "big_chances_missed", "expected_goals", "expected_assists"
+  ]
+  team_features: [
+    "form", "goals_for", "goals_against", "clean_sheets",
+    "xg_for", "xg_against", "possession_pct"
+  ]
+  market_features: [
+    "now_cost", "cost_change_event", "cost_change_start",
+    "selected_by_percent", "transfers_in", "transfers_out",
+    "value_form", "value_season"
+  ]
+
+# --- DASHBOARD ---
+dashboard:
+  title: "FPL AI - Elite Performance Analytics"
+  page_icon: "⚽"
+  layout: "wide"
+  sidebar_state: "expanded"
+  theme:
+    primary_color: "#00FF87"
+    background_color: "#0E1117" 
+    secondary_background_color: "#1E1E1E"
+    text_color: "#FAFAFA"
+  cache_ttl: 300            # 5 minutes
+  auto_refresh: false
+
+# --- PERFORMANCE ---
+performance:
+  parallel_jobs: -1         # use all available cores
+  chunk_size: 1000         # for batch processing
+  memory_limit_gb: 8       # memory usage limit
+  enable_caching: true
+  cache_ttl_hours: 24

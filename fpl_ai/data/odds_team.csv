@@ -1,0 +1,4 @@
+team,gw,opponent,home_away,win_odds,draw_odds,loss_odds,clean_sheet_odds,over_2_5_odds,btts_odds,source
+# Team odds data (optional)
+# Arsenal,1,Wolves,H,1.5,4.0,6.0,2.2,1.8,1.9,bet365
+# Man City,1,Chelsea,A,2.1,3.5,3.8,2.8,1.7,2.0,bet365
