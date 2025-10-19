@@ -160,6 +160,12 @@ artifacts/
 .streamlit/
 logs/
 
+# FPL AI specific
+fpl_ai/cache/
+fpl_ai/models/
+fpl_ai/artifacts/
+fpl_ai/logs/
+
 # MacOS
 .DS_Store
 
