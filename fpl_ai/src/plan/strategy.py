@@ -391,17 +391,23 @@ def evaluate_one_step(
 
 def load_team_state_for_backtest(gw: int) -> Tuple[pd.DataFrame, float, int]:
     """
-    Load team state for backtesting at a specific gameweek.
+    PLACEHOLDER: Future feature not yet implemented.
     
-    This is a placeholder implementation that would need to be integrated
-    with your actual backtesting infrastructure to maintain team state
-    across gameweeks.
+    Planned functionality: Load team state for backtesting at a specific gameweek including:
+    - Team composition (15 players + starting XI)
+    - Bank balance and free transfers
+    - Captain/vice-captain selections
+    - Transfer history and hits taken
+    - Integration with backtesting infrastructure
+    - State persistence across gameweeks
     
     Args:
         gw: Gameweek number
         
     Returns:
         Tuple of (team_df, bank, free_transfers)
+    Status: Stub/placeholder - returns empty team with default values
+    Implementation priority: High - needed for proper backtesting
     """
     try:
         # This would normally load from your backtest state management

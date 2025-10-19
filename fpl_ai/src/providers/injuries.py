@@ -149,18 +149,18 @@ class InjuryProvider:
     
     def get_external_injury_data(self) -> Optional[pd.DataFrame]:
         """
-        Scrape external injury data sources (placeholder implementation).
+        PLACEHOLDER: Future feature not yet implemented.
         
-        Returns:
-            DataFrame with external injury data
+        Planned functionality: Scrape external injury data sources including:
+        - Premier League official injury reports
+        - BBC Sport injury list
+        - Sky Sports injury updates
+        - Fantasy Football Scout injury news
+        - Team official social media updates
+        
+        Status: Stub/placeholder - returns empty DataFrame
+        Implementation priority: Medium - would improve availability predictions
         """
-        # This is a placeholder - in production, you might scrape from:
-        # - Premier League official site
-        # - BBC Sport injury list
-        # - Sky Sports injury updates
-        # - etc.
-        
-        # For now, return empty DataFrame
         logger.info("External injury data scraping not implemented")
         return pd.DataFrame()
     
@@ -229,7 +229,13 @@ class InjuryProvider:
             
             # Adjust based on recent minutes
             if idx in recent_minutes.index:
-                mins = recent_minutes.loc[idx]
+                mins_val = recent_minutes.loc[idx]
+                # Ensure scalar value
+                if hasattr(mins_val, 'iloc'):
+                    mins = mins_val.iloc[0] if len(mins_val) > 0 else 0
+                else:
+                    mins = float(mins_val) if mins_val is not None else 0
+                    
                 if mins >= 270:  # Played 90+ mins in last 3 games
                     mins_factor = 1.5  # Higher rotation risk
                 elif mins >= 180:  # Played 60+ mins average
@@ -241,12 +247,20 @@ class InjuryProvider:
             
             # Adjust for team congestion
             if idx in team_congestion.index:
-                congestion = team_congestion.loc[idx]
+                congestion_val = team_congestion.loc[idx]
+                # Ensure scalar value
+                if hasattr(congestion_val, 'iloc'):
+                    congestion = congestion_val.iloc[0] if len(congestion_val) > 0 else 0
+                else:
+                    congestion = float(congestion_val) if congestion_val is not None else 0
+                    
                 congestion_factor = 1.0 + (congestion * 0.3)  # Up to 30% increase
             else:
                 congestion_factor = 1.0
             
-            rotation_risk.loc[idx] = min(0.8, base_risk * mins_factor * congestion_factor)
+            # Ensure all values are scalars before calculation
+            final_risk = float(base_risk) * float(mins_factor) * float(congestion_factor)
+            rotation_risk.loc[idx] = min(0.8, final_risk)
         
         return rotation_risk
     

@@ -148,7 +148,9 @@ class MinutesModel:
         # Target: next gameweek minutes
         if 'minutes_next' not in df.columns:
             # Create target by shifting minutes
-            df = df.sort_values(['element_id', 'kickoff_time'])
+            # Handle different column names for kickoff_time
+            kickoff_col = 'kickoff_time' if 'kickoff_time' in df.columns else 'kickoff_time_x' if 'kickoff_time_x' in df.columns else 'kickoff_time_y'
+            df = df.sort_values(['element_id', kickoff_col])
             df['minutes_next'] = df.groupby('element_id')['minutes'].shift(-1)
         
         # Remove rows without target
@@ -535,3 +537,33 @@ class MinutesModel:
         except Exception as e:
             logger.error(f"Failed to load minutes model: {e}")
             return False
+
+
+# Standalone functions for easy importing
+def train_minutes_model(training_data: pd.DataFrame, mode: str = "full") -> Dict[str, Any]:
+    """
+    Standalone function to train minutes model.
+    
+    Args:
+        training_data: Training dataset
+        mode: Training mode ('warm' or 'full')
+        
+    Returns:
+        Training results
+    """
+    model = MinutesModel()
+    return model.train(training_data, mode=mode)
+
+
+def predict_minutes(prediction_data: pd.DataFrame) -> pd.Series:
+    """
+    Standalone function to predict minutes.
+    
+    Args:
+        prediction_data: Prediction dataset
+        
+    Returns:
+        Predicted minutes
+    """
+    model = MinutesModel()
+    return model.predict(prediction_data)

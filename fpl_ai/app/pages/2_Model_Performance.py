@@ -21,10 +21,11 @@ app_dir = Path(__file__).parent.parent
 src_dir = app_dir.parent / "src"
 sys.path.insert(0, str(src_dir))
 
-from app._utils import (
-    load_model_performance, get_gameweek_selector, load_predictions,
+from fpl_ai.app._utils import (
+    load_model_performance, get_gameweek_selector,
     get_artifacts_dir, create_position_summary
 )
+from fpl_ai.app.data_loaders import load_predictions_cached, enrich_with_current_fpl_data
 
 # Page configuration
 st.set_page_config(
@@ -36,80 +37,37 @@ st.set_page_config(
 
 def load_cv_metrics() -> Dict[str, Any]:
     """Load cross-validation metrics for all positions."""
-    artifacts_dir = get_artifacts_dir()
-    models_dir = artifacts_dir / "models"
-    
-    cv_metrics = {}
-    positions = ["GK", "DEF", "MID", "FWD"]
-    
-    for position in positions:
-        cv_file = models_dir / f"cv_{position}.json"
-        
-        if cv_file.exists():
-            try:
-                with open(cv_file, 'r') as f:
-                    cv_data = json.load(f)
-                cv_metrics[position] = cv_data
-            except Exception as e:
-                st.warning(f"Could not load CV metrics for {position}: {e}")
-    
-    return cv_metrics
+    # Use the centralized model performance loader
+    performance_data = load_model_performance()
+    return performance_data.get("cv_metrics", {})
 
 
 def load_feature_importance() -> Dict[str, pd.DataFrame]:
     """Load feature importance for all positions."""
-    artifacts_dir = get_artifacts_dir()
-    models_dir = artifacts_dir / "models"
-    
+    # Use the centralized model performance loader
+    performance_data = load_model_performance()
     feature_importance = {}
-    positions = ["GK", "DEF", "MID", "FWD"]
     
-    for position in positions:
-        fi_file = models_dir / f"fi_{position}.csv"
-        
-        if fi_file.exists():
-            try:
-                fi_df = pd.read_csv(fi_file)
-                if not fi_df.empty:
-                    feature_importance[position] = fi_df
-            except Exception as e:
-                st.warning(f"Could not load feature importance for {position}: {e}")
+    for position in ["GK", "DEF", "MID", "FWD"]:
+        key = f"fi_{position}"
+        if key in performance_data:
+            feature_importance[position] = performance_data[key]
     
     return feature_importance
 
 
 def load_residual_analysis() -> Dict[str, Dict[str, float]]:
     """Load residual analysis for all positions."""
-    artifacts_dir = get_artifacts_dir()
-    models_dir = artifacts_dir / "models"
+    # Use the centralized model performance loader
+    performance_data = load_model_performance()
+    residuals = {}
     
-    residual_analysis = {}
-    positions = ["GK", "DEF", "MID", "FWD"]
+    for position in ["GK", "DEF", "MID", "FWD"]:
+        key = f"residuals_{position}"
+        if key in performance_data:
+            residuals[position] = performance_data[key]
     
-    for position in positions:
-        residuals_file = models_dir / f"residuals_{position}.csv"
-        
-        if residuals_file.exists():
-            try:
-                residuals_df = pd.read_csv(residuals_file)
-                
-                if not residuals_df.empty and "residual" in residuals_df.columns:
-                    residuals = residuals_df["residual"]
-                    
-                    residual_analysis[position] = {
-                        "mae": residuals.abs().mean(),
-                        "rmse": np.sqrt((residuals ** 2).mean()),
-                        "std": residuals.std(),
-                        "min": residuals.min(),
-                        "max": residuals.max(),
-                        "q25": residuals.quantile(0.25),
-                        "median": residuals.median(),
-                        "q75": residuals.quantile(0.75)
-                    }
-            except Exception as e:
-                st.warning(f"Could not load residuals for {position}: {e}")
-    
-    return residual_analysis
+    return residuals
 
 
 def create_cv_metrics_chart(cv_metrics: Dict[str, Any]) -> go.Figure:
@@ -123,8 +81,8 @@ def create_cv_metrics_chart(cv_metrics: Dict[str, Any]) -> go.Figure:
     
     for position in positions:
         metrics = cv_metrics[position]
-        mae_values.append(metrics.get("mean_mae", 0))
-        rmse_values.append(metrics.get("mean_rmse", 0))
+        mae_values.append(metrics.get("mae", 0))
+        rmse_values.append(metrics.get("rmse", 0))
     
     fig = go.Figure()
     
@@ -280,7 +238,14 @@ def main():
     cv_metrics = load_cv_metrics()
     feature_importance = load_feature_importance()
     residual_analysis = load_residual_analysis()
-    predictions_df = load_predictions(target_gw)
+    predictions_df = load_predictions_cached(target_gw)
+
+    # Enrich predictions for downstream analysis (costs, team, proj_points)
+    if predictions_df is not None and not predictions_df.empty:
+        try:
+            predictions_df = enrich_with_current_fpl_data(predictions_df)
+        except Exception:
+            pass
     
     # Main tabs
     tab1, tab2, tab3, tab4 = st.tabs(["🎯 Model Metrics", "🔍 Feature Analysis", "📈 Data Quality", "⚙️ System Info"])
@@ -296,7 +261,7 @@ def main():
             for i, position in enumerate(positions):
                 with [col1, col2, col3, col4][i]:
                     if position in cv_metrics:
-                        mae = cv_metrics[position].get("mean_mae", 0)
+                        mae = cv_metrics[position].get("mae", 0)
                         st.metric(f"{position} MAE", f"{mae:.3f}")
                     else:
                         st.metric(f"{position} MAE", "N/A")
@@ -314,10 +279,10 @@ def main():
                     metrics = cv_metrics[position]
                     cv_table_data.append({
                         "Position": position,
-                        "MAE": f"{metrics.get('mean_mae', 0):.3f} ± {metrics.get('std_mae', 0):.3f}",
-                        "RMSE": f"{metrics.get('mean_rmse', 0):.3f} ± {metrics.get('std_rmse', 0):.3f}",
-                        "R²": f"{metrics.get('mean_r2', 0):.3f}",
-                        "CV Folds": metrics.get('n_splits', 'N/A')
+                        "MAE": f"{metrics.get('mae', 0):.3f} ± {metrics.get('cv_mae_std', 0):.3f}",
+                        "RMSE": f"{metrics.get('rmse', 0):.3f} ± {metrics.get('cv_rmse_std', 0):.3f}",
+                        "R²": f"{metrics.get('r2', 0):.3f}",
+                        "CV Folds": metrics.get('n_folds', 'N/A')
                     })
             
             if cv_table_data:
@@ -526,45 +491,72 @@ def main():
         
         # Model files status
         st.markdown("#### 🤖 Model Files Status")
-        
+
         artifacts_dir = get_artifacts_dir()
-        models_dir = artifacts_dir / "models"
-        
+
+        # Search for models across common locations
+        try:
+            current_file = Path(__file__).resolve()
+            project_root = current_file.parents[3]
+            fpl_ai_dir = current_file.parents[2]
+        except Exception:
+            project_root = Path.cwd()
+            fpl_ai_dir = project_root / "fpl_ai"
+
+        candidate_model_dirs = [
+            fpl_ai_dir / "models",                    # fpl_ai/models
+            artifacts_dir / "models",                 # fpl_ai/artifacts/models or artifacts/models depending on artifacts_dir
+            project_root / "artifacts" / "models",   # project-level artifacts/models
+            project_root / "models"                   # project-level models
+        ]
+
         model_files = [
             "model_minutes.pkl",
             "model_points_GK.pkl",
-            "model_points_DEF.pkl", 
+            "model_points_DEF.pkl",
             "model_points_MID.pkl",
             "model_points_FWD.pkl"
         ]
-        
+
+        def find_model_path(model_name: str) -> Path:
+            for d in candidate_model_dirs:
+                p = d / model_name
+                if p.exists():
+                    return p
+            # Default to first dir for display
+            return candidate_model_dirs[0] / model_name
+
         model_status = []
         for model_file in model_files:
-            file_path = models_dir / model_file
+            file_path = find_model_path(model_file)
             exists = file_path.exists()
-            
+
             if exists:
                 try:
                     file_size = file_path.stat().st_size / (1024 * 1024)  # MB
                     size_str = f"{file_size:.1f} MB"
-                except:
+                    location = str(file_path.parent)
+                except Exception:
                     size_str = "Unknown"
+                    location = str(file_path.parent)
             else:
                 size_str = "N/A"
-            
+                location = "Not found"
+
             model_status.append({
                 "Model": model_file,
                 "Status": "✅ Available" if exists else "❌ Missing",
-                "Size": size_str
+                "Size": size_str,
+                "Location": location
             })
-        
+
         model_status_df = pd.DataFrame(model_status)
         st.dataframe(model_status_df, use_container_width=True, hide_index=True)
         
         # Configuration info
         st.markdown("#### ⚙️ Configuration")
         
-        from app._utils import load_config
+        from fpl_ai.app._utils import load_config
         config = load_config()
         
         config_info = {
@@ -592,20 +584,20 @@ def main():
         if predictions_df is None:
             recommendations.append(f"📊 Generate predictions for GW {target_gw}")
         
-        # Check if models are too old
+        # Check if models are too old (consider any found location)
         try:
-            oldest_model = min([
-                (models_dir / f).stat().st_mtime 
-                for f in model_files 
-                if (models_dir / f).exists()
-            ])
-            
             import time
-            days_old = (time.time() - oldest_model) / (24 * 3600)
-            
-            if days_old > 7:
-                recommendations.append(f"🔄 Models are {days_old:.1f} days old - consider retraining")
-        except:
+            model_mtims = []
+            for mf in model_files:
+                p = find_model_path(mf)
+                if p.exists():
+                    model_mtims.append(p.stat().st_mtime)
+            if model_mtims:
+                oldest_model = min(model_mtims)
+                days_old = (time.time() - oldest_model) / (24 * 3600)
+                if days_old > 7:
+                    recommendations.append(f"🔄 Models are {days_old:.1f} days old - consider retraining")
+        except Exception:
             pass
         
         if recommendations:

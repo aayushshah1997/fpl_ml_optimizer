@@ -7,6 +7,7 @@ the full ML pipeline from data loading to model output.
 
 import argparse
 import sys
+import json
 from pathlib import Path
 import pandas as pd
 from typing import Optional, Dict, Any
@@ -126,14 +127,18 @@ def train_and_predict_pipeline(target_gw: int, force_retrain: bool = False) -> D
         
         # Run Monte Carlo simulation
         logger.info("Running Monte Carlo simulation...")
-        mc_results = run_mc_simulation(points_pred)
+        # Use original prediction frame to preserve rolling features
+        mc_results = run_mc_simulation(df_pred)
         
         # Save predictions
         artifacts_dir = Path(config.get("io", {}).get("out_dir", "artifacts"))
         artifacts_dir.mkdir(exist_ok=True)
         
         pred_file = artifacts_dir / f"predictions_gw{target_gw}.csv"
-        mc_results.to_csv(pred_file, index=False)
+        if "player_summaries" in mc_results:
+            mc_results["player_summaries"].to_csv(pred_file, index=False)
+        else:
+            logger.warning(f"No player summaries in MC results: {mc_results}")
         logger.info(f"Predictions saved to {pred_file}")
         
         return {
@@ -205,14 +210,18 @@ def predict_only_pipeline(target_gw: int) -> Dict[str, Any]:
         
         # Run Monte Carlo simulation
         logger.info("Running Monte Carlo simulation...")
-        mc_results = run_mc_simulation(points_pred)
+        # Use original prediction frame to preserve rolling features
+        mc_results = run_mc_simulation(df_pred)
         
         # Save predictions
         artifacts_dir = Path(config.get("io", {}).get("out_dir", "artifacts"))
         artifacts_dir.mkdir(exist_ok=True)
         
         pred_file = artifacts_dir / f"predictions_gw{target_gw}.csv"
-        mc_results.to_csv(pred_file, index=False)
+        if "player_summaries" in mc_results:
+            mc_results["player_summaries"].to_csv(pred_file, index=False)
+        else:
+            logger.warning(f"No player summaries in MC results: {mc_results}")
         logger.info(f"Predictions saved to {pred_file}")
         
         return {
@@ -232,66 +241,20 @@ def predict_only_pipeline(target_gw: int) -> Dict[str, Any]:
         return {"error": str(e)}
 
 
-def wildcard_pipeline(target_gw: int) -> Dict[str, Any]:
-    """
-    Run wildcard optimization pipeline.
-    
-    Args:
-        target_gw: Gameweek to optimize for
-        
-    Returns:
-        Wildcard optimization results
-    """
-    logger.info(f"Starting wildcard pipeline for GW {target_gw}")
-    
-    try:
-        # First run predictions
-        pred_result = predict_only_pipeline(target_gw)
-        
-        if "error" in pred_result:
-            return pred_result
-        
-        predictions = pred_result["predictions"]
-        
-        # Optimize wildcard team
-        from ..optimize.optimizer import TeamOptimizer
-        optimizer = TeamOptimizer()
-        
-        wc_result = optimizer.optimize_team(
-            predictions,
-            budget=100.0,
-            objective="monte_carlo"
-        )
-        
-        if not wc_result:
-            return {"error": "Wildcard optimization failed"}
-        
-        # Optimize starting XI
-        squad = wc_result.get("squad", [])
-        xi_result = optimizer.optimize_starting_xi(
-            squad, predictions, objective="monte_carlo"
-        )
-        
-        return {
-            "success": True,
-            "target_gw": target_gw,
-            "wildcard_squad": squad,
-            "starting_xi": xi_result.get("starting_xi", []),
-            "captain": xi_result.get("captain"),
-            "vice_captain": xi_result.get("vice_captain"),
-            "expected_points": wc_result.get("expected_points", 0),
-            "total_cost": wc_result.get("total_cost", 0),
-            "formation": xi_result.get("formation")
-        }
-        
-    except Exception as e:
-        logger.error(f"Wildcard pipeline failed: {str(e)}", exc_info=True)
-        return {"error": str(e)}
+# Note: wildcard_pipeline function removed - never called in codebase
 
 
 def transfers_pipeline(target_gw: int, num_transfers: int = 1) -> Dict[str, Any]:
     """
-    Run transfer optimization pipeline.
+    PLACEHOLDER: Future feature not yet implemented.
+    
+    Planned functionality: Run transfer optimization pipeline including:
+    - Load current squad state from FPL API or user input
+    - Compare with optimal team recommendations
+    - Suggest specific transfer moves (player in/out)
+    - Consider transfer costs (-4 point hits for multiple transfers)
+    - Factor in upcoming fixture difficulty
+    - Optimize for multiple gameweeks ahead
     
     Args:
         target_gw: Gameweek to optimize for
@@ -299,6 +262,8 @@ def transfers_pipeline(target_gw: int, num_transfers: int = 1) -> Dict[str, Any]
         
     Returns:
         Transfer optimization results
+    Status: Stub/placeholder - returns success message without actual optimization
+    Implementation priority: High - core functionality for FPL management
     """
     logger.info(f"Starting transfers pipeline for GW {target_gw}")
     
@@ -326,11 +291,14 @@ def transfers_pipeline(target_gw: int, num_transfers: int = 1) -> Dict[str, Any]
         return {"error": str(e)}
 
 
+# Note: download_data_pipeline function removed - never called in codebase
+
+
 def main():
     """Main CLI entry point."""
     parser = argparse.ArgumentParser(description="FPL AI Pipeline")
     
-    parser.add_argument("--mode", choices=["train_and_predict", "predict", "wildcard", "transfers"], 
+    parser.add_argument("--mode", choices=["train_and_predict", "predict", "transfers"], 
                        default="predict", help="Pipeline mode")
     parser.add_argument("--gw", type=int, help="Target gameweek (default: current)")
     parser.add_argument("--force", action="store_true", help="Force retrain models")
@@ -359,8 +327,6 @@ def main():
             result = train_and_predict_pipeline(target_gw, force_retrain=args.force)
         elif args.mode == "predict":
             result = predict_only_pipeline(target_gw)
-        elif args.mode == "wildcard":
-            result = wildcard_pipeline(target_gw)
         elif args.mode == "transfers":
             result = transfers_pipeline(target_gw, args.transfers)
         else:
@@ -386,15 +352,9 @@ def main():
                     print(f"Training mode: {train_results.get('training_mode', 'N/A')}")
                     print(f"Training rows: {train_results.get('training_rows', 0):,}")
             
-            elif args.mode == "wildcard":
-                print(f"\n=== Wildcard Team GW {target_gw} ===")
-                print(f"Expected points: {result.get('expected_points', 0):.1f}")
-                print(f"Total cost: £{result.get('total_cost', 0):.1f}M")
-                print(f"Formation: {result.get('formation', 'N/A')}")
-                
-                captain = result.get("captain", {})
-                if captain:
-                    print(f"Captain: {captain.get('web_name', 'N/A')}")
+            elif args.mode == "transfers":
+                print(f"\n=== Transfer Optimization GW {target_gw} ===")
+                print(f"Message: {result.get('message', 'N/A')}")
         
     except KeyboardInterrupt:
         logger.info("Pipeline interrupted by user")

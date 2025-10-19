@@ -105,6 +105,27 @@ make train
 make dash
 ```
 
+### One-Step Full Data + Training
+```bash
+make bootstrap
+```
+
+This single command will:
+1. Fetch all player and FBRef data
+2. Build manager mappings and rotation priors  
+3. Train all ML models with fresh data
+4. Display cache creation summary
+
+Perfect for first-time setup or when you want to refresh all data and models!
+
+### Health Check
+Run a quick repo audit:
+```bash
+make doctor
+```
+
+This will check your settings, environment, caches, and provide actionable recommendations for optimal FPL AI performance.
+
 ### 4. Set Your GW1 Baseline
 The planner uses your actual GW1 team as the starting point. You can either:
 
@@ -168,6 +189,9 @@ make plan10         # 10-week transfer planning
 # Dashboard & Analysis  
 make dash           # Launch Streamlit dashboard
 make cache-stats    # Check cache utilization
+
+# Health Check
+make doctor         # Repository audit and health check
 
 # Development
 make test           # Run test suite

@@ -1,0 +1,110 @@
+name: Update FPL Performance Tracking
+
+on:
+  # Allow manual trigger
+  workflow_dispatch:
+    inputs:
+      gameweek:
+        description: 'Specific gameweek to update (optional, leave empty for all)'
+        required: false
+        type: string
+  
+  # Schedule to run weekly on Wednesdays at 10 AM UTC (after FPL gameweeks typically complete)
+  schedule:
+    - cron: '0 10 * * 3'
+  
+  # Trigger when new data is pushed to the repository (e.g., new Vaastav data)
+  push:
+    paths:
+      - 'fpl_ai/data/vaastav/**'
+      - 'data_backup/**'
+
+jobs:
+  update-performance:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        # Pull latest changes including submodules if any
+        submodules: recursive
+        
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+        
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -e .
+        
+    - name: Check for new gameweek data
+      id: check-data
+      run: |
+        # Check if we have new gameweek data to process
+        cd fpl_ai
+        NEW_DATA=$(find data/vaastav/2024-25/gws/ -name "gw*.csv" -newer artifacts/performance/performance_summary.json 2>/dev/null | wc -l || echo "0")
+        echo "new_gameweeks=$NEW_DATA" >> $GITHUB_OUTPUT
+        echo "Found $NEW_DATA new gameweek files"
+        
+    - name: Update performance tracking (specific gameweek)
+      if: github.event.inputs.gameweek != ''
+      run: |
+        cd fpl_ai
+        PYTHONPATH=. python -m src.cli.update_performance update ${{ github.event.inputs.gameweek }}
+        
+    - name: Update performance tracking (all completed gameweeks)
+      if: github.event.inputs.gameweek == '' && steps.check-data.outputs.new_gameweeks > 0
+      run: |
+        cd fpl_ai
+        PYTHONPATH=. python -m src.cli.update_performance update-all
+        
+    - name: Generate performance report
+      if: steps.check-data.outputs.new_gameweeks > 0 || github.event.inputs.gameweek != ''
+      run: |
+        cd fpl_ai
+        PYTHONPATH=. python -m src.cli.update_performance report > performance_report.txt
+        
+    - name: Upload performance report as artifact
+      if: steps.check-data.outputs.new_gameweeks > 0 || github.event.inputs.gameweek != ''
+      uses: actions/upload-artifact@v3
+      with:
+        name: performance-report-${{ github.run_number }}
+        path: fpl_ai/performance_report.txt
+        
+    - name: Create issue with performance summary (on failure)
+      if: failure()
+      uses: actions/github-script@v6
+      with:
+        script: |
+          github.rest.issues.create({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            title: '🚨 Performance Tracking Update Failed',
+            body: `
+            Performance tracking update failed for run ${context.runId}.
+            
+            **Trigger:** ${context.eventName}
+            **Time:** ${new Date().toISOString()}
+            **Workflow:** ${context.workflow}
+            
+            Please check the [workflow run](${context.payload.repository.html_url}/actions/runs/${context.runId}) for details.
+            
+            Common fixes:
+            - Check if Vaastav data is available for the gameweek
+            - Verify prediction files exist in artifacts/
+            - Check for data format changes
+            `
+          });
+          
+    - name: Summary
+      if: steps.check-data.outputs.new_gameweeks > 0 || github.event.inputs.gameweek != ''
+      run: |
+        echo "✅ Performance tracking update completed!"
+        echo "📊 Updated gameweeks: ${{ steps.check-data.outputs.new_gameweeks || 1 }}"
+        echo "📈 Performance report generated and uploaded as artifact"
+
+
+

@@ -77,7 +77,14 @@ def choose_captain(
             return 0, 0
         
         # Get mean projections for initial filtering
-        mean_projections = xi_df.get("proj_points", xi_df.get("proj", np.zeros(n_players))).to_numpy(dtype=float)
+        proj_data = xi_df.get("proj_points", xi_df.get("proj", np.zeros(n_players)))
+        if isinstance(proj_data, pd.Series):
+            mean_projections = proj_data.to_numpy(dtype=float)
+        else:
+            # If it's a scalar or array, convert to numpy array
+            mean_projections = np.array(proj_data, dtype=float)
+            if mean_projections.size == 1:
+                mean_projections = np.full(n_players, mean_projections.item())
         
         # Restrict to top N candidates by mean for computational efficiency
         top_indices = np.argsort(-mean_projections)[:min(topN, n_players)]
@@ -89,7 +96,19 @@ def choose_captain(
         candidate_scores = []
         
         for idx in top_indices:
+            # Ensure scenarios_matrix is a numpy array before indexing
+            if not isinstance(scenarios_matrix, np.ndarray):
+                logger.error(f"scenarios_matrix is not a numpy array: {type(scenarios_matrix)}")
+                return 0, 0
+            
+            if scenarios_matrix.size == 0:
+                logger.error("scenarios_matrix is empty")
+                return 0, 0
+                
             player_scenarios = scenarios_matrix[:, idx]
+            # Ensure player_scenarios is a numpy array
+            if not isinstance(player_scenarios, np.ndarray):
+                player_scenarios = np.array(player_scenarios, dtype=float)
             mean_score = float(np.mean(player_scenarios))
             cvar_score = cvar(player_scenarios, alpha)
             

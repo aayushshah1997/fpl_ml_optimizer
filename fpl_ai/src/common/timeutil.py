@@ -53,9 +53,12 @@ def get_season_dates(season: Optional[str] = None) -> Tuple[datetime, datetime]:
     end_year = int(f"20{match.group(2)}")
     
     # FPL season typically starts mid-August, ends late May
-    season_start = datetime(start_year, 8, 1)
-    season_end = datetime(end_year, 5, 31)
-    
+    # Create timezone-aware datetime objects to match the timezone used in get_recency_weights
+    import pytz
+    utc = pytz.UTC
+    season_start = utc.localize(datetime(start_year, 8, 1))
+    season_end = utc.localize(datetime(end_year, 5, 31))
+
     return season_start, season_end
 
 
@@ -72,23 +75,30 @@ def get_current_gw(api_data: Optional[Dict] = None) -> int:
     if api_data and 'events' in api_data:
         # Find current or next gameweek from API data
         now = datetime.now()
-        
+
         for event in api_data['events']:
             if event['is_current']:
                 return event['id']
-        
+
         # If no current event, find next upcoming
         for event in api_data['events']:
             if event['deadline_time']:
                 deadline = datetime.fromisoformat(
                     event['deadline_time'].replace('Z', '+00:00')
                 )
+                # Ensure timezone compatibility for comparison
+                if deadline.tzinfo is not None and now.tzinfo is None:
+                    now = now.replace(tzinfo=deadline.tzinfo)
+                elif deadline.tzinfo is None and now.tzinfo is not None:
+                    deadline = deadline.replace(tzinfo=now.tzinfo)
                 if deadline > now:
                     return event['id']
     
     # Fallback: estimate based on date
     season_start, _ = get_season_dates()
-    weeks_since_start = (datetime.now() - season_start).days // 7
+    # Make current datetime timezone-aware to match season_start
+    current_datetime = datetime.now(season_start.tzinfo) if season_start.tzinfo else datetime.now()
+    weeks_since_start = (current_datetime - season_start).days // 7
     
     # Rough estimate (adjust for breaks, postponements)
     estimated_gw = max(1, min(38, weeks_since_start - 1))
@@ -243,9 +253,23 @@ def get_recency_weights(
     """
     if current_date is None:
         current_date = datetime.now()
-    
+
     current_season = get_current_season()
-    
+
+    # Handle timezone compatibility for date subtraction
+    if hasattr(current_date, 'tzinfo') and current_date.tzinfo is not None:
+        # If current_date is timezone-aware, ensure dates are also timezone-aware
+        if dates.dt.tz is None:
+            # Convert timezone-naive dates to UTC to match current_date
+            dates = dates.dt.tz_localize('UTC')
+        elif dates.dt.tz != current_date.tzinfo:
+            # Convert dates to match current_date's timezone
+            dates = dates.dt.tz_convert(current_date.tzinfo)
+    else:
+        # If current_date is timezone-naive, ensure dates are also timezone-naive
+        if dates.dt.tz is not None:
+            dates = dates.dt.tz_convert(None)
+
     # Calculate days ago
     days_ago = (current_date - dates).dt.days
     
@@ -253,9 +277,20 @@ def get_recency_weights(
     weights = pd.Series(np.exp(-lambda_games * days_ago / 7), index=dates.index)
     
     # Season-based boosts
+    season_start, _ = get_season_dates()
     for idx, date in dates.items():
-        season = get_current_season() if date >= get_season_dates()[0] else None
-        
+        # Ensure date comparison works with timezone handling
+        if hasattr(date, 'tzinfo') and date.tzinfo is not None:
+            # If date is timezone-aware, compare with timezone-aware season_start
+            if season_start.tzinfo is None:
+                season_start = season_start.replace(tzinfo=date.tzinfo)
+            season = get_current_season() if date >= season_start else None
+        else:
+            # If date is timezone-naive, compare with timezone-naive season_start
+            if season_start.tzinfo is not None:
+                season_start = season_start.replace(tzinfo=None)
+            season = get_current_season() if date >= season_start else None
+
         if season == current_season:
             weights.loc[idx] *= current_season_boost
         elif season == get_previous_season(current_season):

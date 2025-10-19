@@ -44,7 +44,8 @@ class FixturesProvider:
         
         # Add derived columns
         if not fixtures_df.empty:
-            fixtures_df['kickoff_time'] = pd.to_datetime(fixtures_df['kickoff_time'])
+            # Handle timezone-aware datetime from FPL API
+            fixtures_df['kickoff_time'] = pd.to_datetime(fixtures_df['kickoff_time'], utc=True, errors='coerce')
             fixtures_df['is_finished'] = fixtures_df['finished']
             fixtures_df['is_started'] = fixtures_df['started']
             

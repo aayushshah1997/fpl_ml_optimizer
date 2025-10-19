@@ -248,25 +248,31 @@ class SetPieceProxy:
     
     def analyze_social_media(self, social_data: List[Dict]) -> pd.DataFrame:
         """
-        Analyze social media posts for set piece information.
+        PLACEHOLDER: Future feature not yet implemented.
         
-        Args:
-            social_data: List of social media posts
-            
-        Returns:
-            DataFrame with social media analysis
+        Planned functionality: Analyze social media posts for set piece information including:
+        - Twitter API for team/player tweets about penalties/free kicks
+        - Instagram posts analysis for training ground videos
+        - YouTube video descriptions from team channels
+        - Reddit r/FantasyPL discussions and leaks
+        - Fantasy Football Scout community insights
+        
+        Status: Stub/placeholder - returns empty DataFrame
+        Implementation priority: Low - nice to have for edge cases
         """
-        # Placeholder implementation - in practice you might use:
-        # - Twitter API for team/player tweets
-        # - Instagram posts analysis
-        # - YouTube video descriptions
-        
         logger.info("Social media analysis not implemented")
         return pd.DataFrame()
     
     def infer_from_match_events(self, match_events: pd.DataFrame) -> pd.DataFrame:
         """
-        Infer set piece takers from match event data.
+        PLACEHOLDER: Future feature not yet implemented.
+        
+        Planned functionality: Infer set piece takers from match event data including:
+        - Penalty kick events to identify penalty takers
+        - Free kick events to identify free kick specialists
+        - Corner kick events to identify corner takers
+        - Match event data from Opta/StatsBomb
+        - Historical set piece performance analysis
         
         Args:
             match_events: DataFrame with match events (goals, assists, etc.)
@@ -409,7 +415,7 @@ class SetPieceProxy:
                 'confidence': confidence,
                 'num_sources': num_sources,
                 'sources': list(group['source_type'].unique()),
-                'last_updated': pd.Timestamp.now().isoformat()
+                'last_updated': pd.Timestamp.now(tz='UTC').isoformat()
             })
         
         result_df = pd.DataFrame(aggregated_roles)

@@ -162,7 +162,7 @@ def simulate_gw(
             return {"points_mean": 0.0, "scen_sum": np.array([]), "decision": None}
         
         # Merge predictions with player data to create market
-        market = pred.merge(preds, left_on="id", right_on="element_id", how="inner")
+        market = pred.merge(preds, left_on="element_id", right_on="element_id", how="inner")
         
         if market.empty:
             logger.warning(f"No merged market data for GW {gw}")
@@ -247,15 +247,23 @@ def simulate_gw(
         xi_df = pd.DataFrame(xi_result["starting_xi"])
         
         # Generate per-player scenarios
-        scen_mat, player_ids = simulate_player_matrix(
-            xi_df, 
-            S=int(settings.get("mc", {}).get("num_scenarios", 2000)),
-            seed=int(settings.get("mc", {}).get("seed", 42)),
-            minutes_uncertainty=float(settings.get("mc", {}).get("minutes_uncertainty", 0.20)),
-            settings=settings
-        )
+        try:
+            scen_mat, player_ids = simulate_player_matrix(
+                xi_df, 
+                S=int(settings.get("mc", {}).get("num_scenarios", 2000)),
+                seed=int(settings.get("mc", {}).get("seed", 42)),
+                minutes_uncertainty=float(settings.get("mc", {}).get("minutes_uncertainty", 0.20)),
+                settings=settings
+            )
+            
+            # Debug: Log what we got from simulate_player_matrix
+            logger.debug(f"simulate_player_matrix returned: scen_mat type={type(scen_mat)}, shape={getattr(scen_mat, 'shape', 'N/A')}, player_ids={player_ids}")
+        except Exception as e:
+            logger.error(f"Error in simulate_player_matrix call: {e}")
+            scen_mat = np.array([]).reshape(0, 0)
+            player_ids = []
         
-        if scen_mat.size == 0:
+        if scen_mat.size == 0 or not isinstance(scen_mat, np.ndarray):
             logger.warning(f"Monte Carlo simulation failed for GW {gw}")
             # Fallback to mean calculation
             points_mean = sum(player.get("proj_points", player.get("proj", 0)) for player in xi_result["starting_xi"])
@@ -270,7 +278,8 @@ def simulate_gw(
         
         cap_idx, vc_idx = choose_captain(
             xi_df=xi_df,
-            scen_mat=scen_mat, 
+            scenarios_matrix=scen_mat,
+            player_ids=player_ids,
             policy=policy,
             alpha=alpha,
             mix_lambda=mix_lambda,
@@ -278,8 +287,24 @@ def simulate_gw(
         )
         
         # Calculate final team scores with captain bonus
-        team_sum = scen_mat.sum(axis=1) + scen_mat[:, cap_idx]  # Add captain double points
-        points_mean = float(np.mean(team_sum))
+        # Ensure scen_mat is a numpy array before indexing
+        if not isinstance(scen_mat, np.ndarray) or scen_mat.size == 0:
+            logger.error(f"scen_mat is not a valid numpy array: {type(scen_mat)}, size: {scen_mat.size if hasattr(scen_mat, 'size') else 'N/A'}")
+            points_mean = 0.0
+            team_sum = np.array([])
+        else:
+            # Ensure cap_idx is within bounds
+            if cap_idx >= scen_mat.shape[1]:
+                logger.warning(f"cap_idx {cap_idx} >= scen_mat.shape[1] {scen_mat.shape[1]}, using 0")
+                cap_idx = 0
+            
+            team_sum = scen_mat.sum(axis=1) + scen_mat[:, cap_idx]  # Add captain double points
+            # Ensure team_sum is a numpy array before calling mean
+            if isinstance(team_sum, np.ndarray):
+                points_mean = float(np.mean(team_sum))
+            else:
+                # If it's a scalar, use it directly
+                points_mean = float(team_sum)
         
         # Update decision with final captain info
         if cap_idx < len(xi_df):
@@ -291,8 +316,8 @@ def simulate_gw(
             "points_mean": points_mean,
             "scen_sum": team_sum,
             "starting_xi": xi_result["starting_xi"],
-            "captain": {"element_id": decision.captain_id} if decision.captain_id else None,
-            "vice_captain": {"element_id": decision.vice_id} if decision.vice_id else None,
+            "captain": {"element_id": int(decision.captain_id)} if decision.captain_id else None,
+            "vice_captain": {"element_id": int(decision.vice_id)} if decision.vice_id else None,
             "decision": decision,
             "team_after_transfers": final_team.to_dict('records'),
             "bank_after": decision.bank_after

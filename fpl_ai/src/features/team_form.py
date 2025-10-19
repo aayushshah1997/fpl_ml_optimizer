@@ -51,69 +51,114 @@ def calculate_team_form(
 
 
 def _aggregate_to_team_level(match_data: pd.DataFrame) -> pd.DataFrame:
-    """Aggregate player data to team level."""
+    """Aggregate match data to team level for form calculations."""
     if 'team_id' not in match_data.columns or 'gameweek' not in match_data.columns:
         logger.warning("Missing required columns for team aggregation")
         return pd.DataFrame()
     
-    # Team-level aggregations
-    team_agg = match_data.groupby(['team_id', 'gameweek']).agg({
-        'points': ['sum', 'mean', 'count'],
-        'goals_scored': 'sum',
-        'assists': 'sum',
-        'clean_sheets': 'max',  # Team gets clean sheet if any player does
-        'goals_conceded': 'max',  # Team concedes if any player does
-        'yellow_cards': 'sum',
-        'red_cards': 'sum',
-        'saves': 'sum',
-        'bonus': 'sum',
-        'bps': 'sum',
-        'minutes': 'sum',
-        'kickoff_time': 'first',
-        'home_away': 'first',
-        'opponent_id': 'first',
-        'fixture_difficulty': 'first'
-    }).reset_index()
+    # Check what columns are actually available
+    available_columns = match_data.columns.tolist()
+    logger.info(f"Available columns for team aggregation: {available_columns}")
     
-    # Flatten column names
-    team_agg.columns = [
-        f"{col[0]}_{col[1]}" if col[1] else col[0] 
-        for col in team_agg.columns
-    ]
-    
-    # Rename flattened columns to sensible names
-    rename_map = {
-        'points_sum': 'team_points',
-        'points_mean': 'team_points_avg',
-        'points_count': 'players_played',
-        'goals_scored_sum': 'team_goals_for',
-        'assists_sum': 'team_assists',
-        'clean_sheets_max': 'team_clean_sheet',
-        'goals_conceded_max': 'team_goals_against',
-        'yellow_cards_sum': 'team_yellow_cards',
-        'red_cards_sum': 'team_red_cards',
-        'saves_sum': 'team_saves',
-        'bonus_sum': 'team_bonus',
-        'bps_sum': 'team_bps',
-        'minutes_sum': 'team_minutes',
-        'kickoff_time_first': 'kickoff_time',
-        'home_away_first': 'home_away',
-        'opponent_id_first': 'opponent_id',
-        'fixture_difficulty_first': 'fixture_difficulty'
+    # Team-level aggregations - only use columns that exist
+    agg_dict = {
+        'points': 'sum'  # Use 'points' instead of 'total_points'
     }
+    
+    # Add optional columns if they exist
+    if 'goals' in available_columns:
+        agg_dict['goals'] = 'sum'
+    if 'assists' in available_columns:
+        agg_dict['assists'] = 'sum'
+    if 'clean_sheets' in available_columns:
+        agg_dict['clean_sheets'] = 'max'
+    if 'goals_conceded' in available_columns:
+        agg_dict['goals_conceded'] = 'max'
+    if 'yellow_cards' in available_columns:
+        agg_dict['yellow_cards'] = 'sum'
+    if 'red_cards' in available_columns:
+        agg_dict['red_cards'] = 'sum'
+    if 'saves' in available_columns:
+        agg_dict['saves'] = 'sum'
+    if 'bonus' in available_columns:
+        agg_dict['bonus'] = 'sum'
+    if 'bps' in available_columns:
+        agg_dict['bps'] = 'sum'
+    if 'minutes' in available_columns:
+        agg_dict['minutes'] = 'sum'
+    if 'kickoff_time' in available_columns:
+        agg_dict['kickoff_time'] = 'first'
+    if 'home_away' in available_columns:
+        agg_dict['home_away'] = 'first'
+    if 'opponent_id' in available_columns:
+        agg_dict['opponent_id'] = 'first'
+    if 'fixture_difficulty' in available_columns:
+        agg_dict['fixture_difficulty'] = 'first'
+    
+    # Perform aggregation
+    team_agg = match_data.groupby(['team_id', 'gameweek']).agg(agg_dict).reset_index()
+    
+    # Handle potential multi-level column names from aggregation
+    if isinstance(team_agg.columns, pd.MultiIndex):
+        team_agg.columns = ['_'.join(col).strip() if col[1] else col[0] for col in team_agg.columns.values]
+    
+    # Rename columns to sensible names
+    rename_map = {
+        'points': 'team_points'
+    }
+    
+    # Add optional column renames - handle both direct names and aggregated names
+    available_cols = team_agg.columns.tolist()
+    if 'goals' in available_cols:
+        rename_map['goals'] = 'team_goals_for'
+    elif 'goals_sum' in available_cols:
+        rename_map['goals_sum'] = 'team_goals_for'
+    
+    if 'assists' in available_cols:
+        rename_map['assists'] = 'team_assists'
+    elif 'assists_sum' in available_cols:
+        rename_map['assists_sum'] = 'team_assists'
+    
+    if 'clean_sheets' in available_cols:
+        rename_map['clean_sheets'] = 'team_clean_sheet'
+    elif 'clean_sheets_max' in available_cols:
+        rename_map['clean_sheets_max'] = 'team_clean_sheet'
+    if 'goals_conceded_max' in team_agg.columns:
+        rename_map['goals_conceded_max'] = 'team_goals_against'
+    if 'yellow_cards_sum' in team_agg.columns:
+        rename_map['yellow_cards_sum'] = 'team_yellow_cards'
+    if 'red_cards_sum' in team_agg.columns:
+        rename_map['red_cards_sum'] = 'team_red_cards'
+    if 'saves_sum' in team_agg.columns:
+        rename_map['saves_sum'] = 'team_saves'
+    if 'bonus_sum' in team_agg.columns:
+        rename_map['bonus_sum'] = 'team_bonus'
+    if 'bps_sum' in team_agg.columns:
+        rename_map['bps_sum'] = 'team_bps'
+    if 'minutes_sum' in team_agg.columns:
+        rename_map['minutes_sum'] = 'team_minutes'
+    if 'kickoff_time_first' in team_agg.columns:
+        rename_map['kickoff_time_first'] = 'kickoff_time'
+    if 'home_away_first' in team_agg.columns:
+        rename_map['home_away_first'] = 'home_away'
+    if 'opponent_id_first' in team_agg.columns:
+        rename_map['opponent_id_first'] = 'opponent_id'
+    if 'fixture_difficulty_first' in team_agg.columns:
+        rename_map['fixture_difficulty_first'] = 'fixture_difficulty'
     
     team_agg = team_agg.rename(columns=rename_map)
     
-    # Calculate derived metrics
-    team_agg['team_goals_per_game'] = team_agg['team_goals_for']
-    team_agg['team_goals_against_per_game'] = team_agg['team_goals_against']
-    team_agg['team_goal_difference'] = team_agg['team_goals_for'] - team_agg['team_goals_against']
-    
-    # Team result (3 points win, 1 point draw, 0 points loss)
-    team_agg['team_result_points'] = np.where(
-        team_agg['team_goal_difference'] > 0, 3,
-        np.where(team_agg['team_goal_difference'] == 0, 1, 0)
-    )
+    # Calculate derived metrics based on available columns
+    if 'team_goals_for' in team_agg.columns and 'team_goals_against' in team_agg.columns:
+        team_agg['team_goal_difference'] = team_agg['team_goals_for'] - team_agg['team_goals_against']
+        # Team result (3 points win, 1 point draw, 0 points loss)
+        team_agg['team_result_points'] = np.where(
+            team_agg['team_goal_difference'] > 0, 3,
+            np.where(team_agg['team_goal_difference'] == 0, 1, 0)
+        )
+    else:
+        # If we don't have goals data, use points as a proxy
+        team_agg['team_result_points'] = team_agg['team_points']
     
     return team_agg
 
@@ -124,7 +169,9 @@ def _calculate_rolling_team_metrics(df: pd.DataFrame, windows: List[int]) -> pd.
         return df
     
     # Sort by team and time
-    df = df.sort_values(['team_id', 'kickoff_time'])
+    # Handle different column names for kickoff_time
+    kickoff_col = 'kickoff_time' if 'kickoff_time' in df.columns else 'kickoff_time_x' if 'kickoff_time_x' in df.columns else 'kickoff_time_y'
+    df = df.sort_values(['team_id', kickoff_col])
     
     # Metrics to calculate rolling averages for
     rolling_metrics = [
@@ -183,22 +230,30 @@ def _calculate_opponent_adjusted_metrics(df: pd.DataFrame, windows: List[int]) -
         # Get opponent defensive strength (affects team's attacking output)
         opponent_defense_col = f"opponent_defense_r{window}"
         if f"defense_strength_r{window}" in df.columns:
-            opponent_defense = df.set_index(['team_id', 'gameweek'])[f"defense_strength_r{window}"].to_dict()
+            # Create a mapping DataFrame for more efficient merging
+            defense_map = df[['team_id', 'gameweek', f"defense_strength_r{window}"]].copy()
+            defense_map = defense_map.rename(columns={
+                'team_id': 'opponent_id',
+                f"defense_strength_r{window}": opponent_defense_col
+            })
             
-            df[opponent_defense_col] = df.apply(
-                lambda row: opponent_defense.get((row['opponent_id'], row['gameweek']), 1.0),
-                axis=1
-            )
+            # Merge to get opponent defensive strength
+            df = df.merge(defense_map, on=['opponent_id', 'gameweek'], how='left')
+            df[opponent_defense_col] = df[opponent_defense_col].fillna(1.0)
         
         # Get opponent attacking strength (affects team's defensive performance)
         opponent_attack_col = f"opponent_attack_r{window}"
         if f"attack_strength_r{window}" in df.columns:
-            opponent_attack = df.set_index(['team_id', 'gameweek'])[f"attack_strength_r{window}"].to_dict()
+            # Create a mapping DataFrame for more efficient merging
+            attack_map = df[['team_id', 'gameweek', f"attack_strength_r{window}"]].copy()
+            attack_map = attack_map.rename(columns={
+                'team_id': 'opponent_id',
+                f"attack_strength_r{window}": opponent_attack_col
+            })
             
-            df[opponent_attack_col] = df.apply(
-                lambda row: opponent_attack.get((row['opponent_id'], row['gameweek']), 1.0),
-                axis=1
-            )
+            # Merge to get opponent attacking strength
+            df = df.merge(attack_map, on=['opponent_id', 'gameweek'], how='left')
+            df[opponent_attack_col] = df[opponent_attack_col].fillna(1.0)
         
         # Calculate opponent-adjusted performance
         goals_for_col = f"team_goals_for_r{window}"
@@ -262,11 +317,21 @@ def calculate_fixture_context(
     
     # Fixture congestion (games in short period)
     if 'kickoff_time' in context_data.columns:
-        context_data['kickoff_time'] = pd.to_datetime(context_data['kickoff_time'])
-        
+        # Handle timezone-aware datetime conversion
+        context_data['kickoff_time'] = pd.to_datetime(context_data['kickoff_time'], utc=True, errors='coerce')
+
         # Calculate days since last game
-        context_data = context_data.sort_values(['team_id', 'kickoff_time'])
-        context_data['days_since_last_game'] = context_data.groupby('team_id')['kickoff_time'].diff().dt.days
+        # Handle different column names for kickoff_time
+        kickoff_col = 'kickoff_time' if 'kickoff_time' in context_data.columns else 'kickoff_time_x' if 'kickoff_time_x' in context_data.columns else 'kickoff_time_y'
+        context_data = context_data.sort_values(['team_id', kickoff_col])
+
+        # Ensure consistent timezone handling for date differences
+        kickoff_series = context_data[kickoff_col]
+        if kickoff_series.dt.tz is not None:
+            # Convert to timezone-naive for date calculations
+            kickoff_series = kickoff_series.dt.tz_convert(None)
+
+        context_data['days_since_last_game'] = context_data.groupby('team_id')[kickoff_col].diff().dt.days
         
         # Congestion indicator (games within 3 days)
         context_data['fixture_congestion'] = (context_data['days_since_last_game'] <= 3).astype(int)
@@ -293,7 +358,9 @@ def calculate_momentum_indicators(team_data: pd.DataFrame) -> pd.DataFrame:
     momentum_data = team_data.copy()
     
     # Sort by team and time
-    momentum_data = momentum_data.sort_values(['team_id', 'kickoff_time'])
+    # Handle different column names for kickoff_time
+    kickoff_col = 'kickoff_time' if 'kickoff_time' in momentum_data.columns else 'kickoff_time_x' if 'kickoff_time_x' in momentum_data.columns else 'kickoff_time_y'
+    momentum_data = momentum_data.sort_values(['team_id', kickoff_col])
     
     # Win/loss streaks
     if 'team_result_points' in momentum_data.columns:

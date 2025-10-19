@@ -5,8 +5,12 @@ Provides access to FBRef data through their API with proper rate limiting,
 caching, and league-specific data retrieval.
 """
 
+import hashlib
+import json
+import logging
 import time
-from typing import Dict, List, Optional, Any, Tuple
+from typing import Any, Dict, List, Optional, Union
+
 import requests
 import pandas as pd
 from ..common.config import get_config, get_logger
@@ -35,7 +39,7 @@ class FBRAPIClient:
         self.base_url = self.config.get("fbrapi.base_url", "https://fbrapi.com")
         self.session = requests.Session()
         
-        # Rate limiting
+        # Rate limiting (FBR API requires 3 seconds between requests)
         self.rate_limit = self.config.get("fbrapi.rate_limit_sec", 3.0)
         self.last_request_time = 0
         
@@ -75,10 +79,16 @@ class FBRAPIClient:
         
         # Prepare request parameters
         params = params or {}
-        params['api_key'] = self.api_key
         
-        # Generate cache key
-        cache_key = f"fbr_{endpoint}_{hash(str(sorted(params.items())))}"
+        # Generate cache key (include API key in cache key for security)
+        # Canonicalize params with stable JSON representation
+        canonical_params = json.dumps(sorted(params.items()), sort_keys=True)
+        params_digest = hashlib.sha256(canonical_params.encode()).hexdigest()[:16]
+        
+        # Create separate hash for API key to avoid leaking secrets
+        api_key_digest = hashlib.sha256(self.api_key.encode()).hexdigest()[:16]
+        
+        cache_key = f"fbr_{endpoint}_{params_digest}_{api_key_digest}"
         ttl = cache_ttl or self.default_cache_ttl
         
         # Check cache first
@@ -92,10 +102,14 @@ class FBRAPIClient:
         
         url = f"{self.base_url}/{endpoint.lstrip('/')}"
         
+        # Set headers with API key (correct authentication method)
+        headers = {"X-API-Key": self.api_key}
+        
         try:
             response = self.session.get(
                 url,
                 params=params,
+                headers=headers,
                 timeout=self.config.get("fbrapi.timeout", 30)
             )
             response.raise_for_status()
@@ -378,7 +392,13 @@ class FBRAPIClient:
         
         # Apply league strength adjustments
         league_strength = self.config.get("training.league_strength", {})
-        df['league_strength_factor'] = df['league_id'].astype(str).map(league_strength).fillna(0.85)
+        # Ensure we get a Series before calling fillna
+        league_mapped = df['league_id'].astype(str).map(league_strength)
+        if isinstance(league_mapped, pd.Series):
+            df['league_strength_factor'] = league_mapped.fillna(0.85)
+        else:
+            # If it's a scalar, create a Series with the same length
+            df['league_strength_factor'] = pd.Series([league_mapped] * len(df), index=df.index)
         
         logger.info(f"Retrieved {len(df)} total matches from FBR API for {df['fpl_player_id'].nunique()} players")
         return df
@@ -579,11 +599,17 @@ class FBRAPIClient:
         numeric_cols = ['minutes', 'goals', 'assists', 'xg', 'xa', 'shots', 'sot', 'kp', 'bc', 'touches_box']
         for col in numeric_cols:
             if col in normalized.columns:
-                normalized[col] = pd.to_numeric(normalized[col], errors='coerce').fillna(0)
+                # Ensure we get a Series before calling fillna
+                numeric_series = pd.to_numeric(normalized[col], errors='coerce')
+                if isinstance(numeric_series, pd.Series):
+                    normalized[col] = numeric_series.fillna(0)
+                else:
+                    # If it's a scalar, create a Series with the same length
+                    normalized[col] = pd.Series([numeric_series] * len(normalized), index=normalized.index)
         
         # Convert date column
         if 'date' in normalized.columns:
-            normalized['date'] = pd.to_datetime(normalized['date'], errors='coerce')
+            normalized['date'] = pd.to_datetime(normalized['date'], utc=True, errors='coerce')
         
         # Sort by date
         if 'date' in normalized.columns:

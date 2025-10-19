@@ -23,7 +23,6 @@ def resolve_current_managers() -> pd.DataFrame:
         DataFrame with columns: team_id, team_name, manager
     """
     config = get_config()
-    client = FBRAPIClient()
     
     season_curr = config.get("rotation_engine.season_curr", "2025-2026")
     overrides_path = config.get("managers.overrides_csv", "data/manager_overrides.csv")
@@ -33,9 +32,17 @@ def resolve_current_managers() -> pd.DataFrame:
     if overrides_full_path.exists():
         overrides = pd.read_csv(overrides_full_path)
         logger.info(f"Loaded manager overrides from {overrides_full_path}")
+        return overrides
     else:
         overrides = pd.DataFrame(columns=["team_id", "team_name", "manager"])
         logger.info("No manager overrides file found")
+    
+    # Skip FBR API if disabled
+    if not config.get("fbrapi.enabled", False):
+        logger.info("FBR API disabled, returning empty manager list")
+        return pd.DataFrame(columns=["team_id", "team_name", "manager"])
+    
+    client = FBRAPIClient()
     
     # Get PL teams
     teams = client.get_pl_teams()
@@ -86,3 +93,4 @@ def resolve_current_managers() -> pd.DataFrame:
     result = pd.DataFrame(rows)
     logger.info(f"Resolved managers for {len(result)} teams")
     return result
+

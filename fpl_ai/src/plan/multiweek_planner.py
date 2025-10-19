@@ -169,7 +169,7 @@ class MultiWeekPlanner:
         plan_result['metadata'] = {
             'start_gw': start_gw,
             'horizon': self.horizon_gws,
-            'planning_timestamp': pd.Timestamp.now().isoformat(),
+            'planning_timestamp': pd.Timestamp.now(tz='UTC').isoformat(),
             'config': {
                 'max_transfers_per_gw': self.max_transfers_per_gw,
                 'risk_lambda': self.risk_lambda,

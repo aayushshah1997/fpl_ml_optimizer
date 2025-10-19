@@ -38,6 +38,7 @@ dependencies = [
     "plotly>=5.17.0",
     "streamlit>=1.28.0",
     "tqdm>=4.65.0",
+    "schedule>=1.2.0",
     "aiohttp>=3.8.0",
     "asyncio>=3.4.3",
     "beautifulsoup4>=4.12.0",
@@ -73,7 +74,7 @@ fpl-plan = "src.cli.plan10:main"
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["src*"]
+include = ["src*", "fpl_ai*"]
 
 [tool.black]
 line-length = 88

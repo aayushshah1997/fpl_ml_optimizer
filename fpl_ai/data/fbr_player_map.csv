@@ -1,4 +1,363 @@
-fpl_player_id,fbr_player_id,player_name,notes
-# Example mappings - add as needed for new signings
-# 123,456,Erling Haaland,Man City striker
-# 124,457,Darwin Nunez,Liverpool striker
+fpl_player_id,fbr_player_id,player_name,team_name,fpl_team_name,notes
+17,excel_0,Martin Ødegaard,Arsenal,Arsenal,Excel data integration - MID
+26,excel_1,Martín Zubimendi,Arsenal,Arsenal,Excel data integration - MID
+498,excel_2,Ben White,Arsenal,Newcastle,Excel data integration - DEF
+20,excel_3,Leandro Trossard,Arsenal,Arsenal,Excel data integration - FWD
+8,excel_4,Jurriën Timber,Arsenal,Arsenal,Excel data integration - DEF
+6,excel_5,William Saliba,Arsenal,Arsenal,Excel data integration - DEF
+16,excel_6,Bukayo Saka,Arsenal,Arsenal,Excel data integration - FWD
+21,excel_7,Declan Rice,Arsenal,Arsenal,Excel data integration - MID
+1,excel_8,David Raya,Arsenal,Arsenal,Excel data integration - GK
+25,excel_9,Ethan Nwaneri,Arsenal,Arsenal,Excel data integration - MID
+634,excel_10,Cristhian Mosquera,Arsenal,Wolves,Excel data integration - DEF
+22,excel_11,Mikel Merino,Arsenal,Arsenal,Excel data integration - MID
+5,excel_12,Gabriel Martinelli,Arsenal,Arsenal,Excel data integration - FWD
+5,excel_13,Gabriel Magalhães,Arsenal,Arsenal,Excel data integration - DEF
+18,excel_14,Noni Madueke,Arsenal,Arsenal,Excel data integration - FWD
+10,excel_15,Myles Lewis-Skelly,Arsenal,Arsenal,Excel data integration - DEF
+30,excel_16,Kai Havertz,Arsenal,Arsenal,Excel data integration - FWD
+666,excel_17,Viktor Gyökeres,Arsenal,Arsenal,Excel data integration - FWD
+266,excel_18,Eberechi Eze,Arsenal,Arsenal,Excel data integration - FWD
+700,excel_19,Max Dowman,Arsenal,Arsenal,Excel data integration - FWD
+7,excel_20,Riccardo Calafiori,Arsenal,Arsenal,Excel data integration - DEF
+64,excel_21,Ollie Watkins,Aston Villa,Aston Villa,Excel data integration - FWD
+41,excel_22,Pau Torres,Aston Villa,Aston Villa,Excel data integration - DEF
+48,excel_23,Youri Tielemans,Aston Villa,Aston Villa,Excel data integration - MID
+47,excel_24,Morgan Rogers,Aston Villa,Aston Villa,Excel data integration - FWD
+41,excel_25,Bradley Paul Burrowes,Aston Villa,Aston Villa,Excel data integration - DEF
+432,excel_26,Amadou Onana,Aston Villa,Man Utd,Excel data integration - MID
+40,excel_27,Tyrone Mings,Aston Villa,Aston Villa,Excel data integration - DEF
+54,excel_28,John McGinn,Aston Villa,Aston Villa,Excel data integration - FWD
+53,excel_30,Donyell Malen,Aston Villa,Aston Villa,Excel data integration - FWD
+39,excel_31,Ian Maatsen,Aston Villa,Aston Villa,Excel data integration - DEF
+38,excel_32,Ezri Konsa,Aston Villa,Aston Villa,Excel data integration - DEF
+58,excel_33,Boubacar Kamara,Aston Villa,Aston Villa,Excel data integration - MID
+677,excel_34,Evann Guessand,Aston Villa,Aston Villa,Excel data integration - FWD
+37,excel_35,Lucas Digne,Aston Villa,Aston Villa,Excel data integration - DEF
+36,excel_36,Matty Cash,Aston Villa,Aston Villa,Excel data integration - DEF
+50,excel_37,Emi Buendía,Aston Villa,Aston Villa,Excel data integration - MID
+44,excel_38,Lamare Bogarde,Aston Villa,Aston Villa,Excel data integration - MID
+33,excel_39,Marco Bizot,Aston Villa,Aston Villa,Excel data integration - GK
+201,excel_40,Ben Winterburn,Bournemouth,Burnley,Excel data integration - MID
+74,excel_41,Adrien Truffert,Bournemouth,Bournemouth,Excel data integration - DEF
+84,excel_42,Marcus Tavernier,Bournemouth,Bournemouth,Excel data integration - MID
+73,excel_43,Adam Smith,Bournemouth,Bournemouth,Excel data integration - DEF
+72,excel_44,Marcos Senesi,Bournemouth,Bournemouth,Excel data integration - DEF
+82,excel_45,Antoine Semenyo,Bournemouth,Bournemouth,Excel data integration - MID
+43,excel_46,Alex Scott,Bournemouth,Aston Villa,Excel data integration - MID
+67,excel_47,Đorđe Petrović,Bournemouth,Bournemouth,Excel data integration - GK
+81,excel_48,Justin Kluivert,Bournemouth,Bournemouth,Excel data integration - MID
+93,excel_49,Hamed Junior Traorè,Bournemouth,Bournemouth,Excel data integration - MID
+100,excel_50,Eli Junior Kroupi,Bournemouth,Bournemouth,Excel data integration - FWD
+77,excel_51,James Hill,Bournemouth,Bournemouth,Excel data integration - DEF
+97,excel_52,Evanilson,Bournemouth,Bournemouth,Excel data integration - FWD
+685,excel_53,Bafodé Diakité,Bournemouth,Bournemouth,Excel data integration - DEF
+87,excel_54,Ryan Christie,Bournemouth,Bournemouth,Excel data integration - MID
+86,excel_55,David Brooks,Bournemouth,Bournemouth,Excel data integration - MID
+697,excel_56,Amine Adli,Bournemouth,Bournemouth,Excel data integration - FWD
+85,excel_57,Tyler Adams,Bournemouth,Bournemouth,Excel data integration - MID
+129,excel_58,Yehor Yarmoliuk,Brentford,Brentford,Excel data integration - MID
+136,excel_59,Thiago,Brentford,Brentford,Excel data integration - FWD
+120,excel_60,Kevin Schade,Brentford,Brentford,Excel data integration - FWD
+83,excel_61,Dango Ouattara,Brentford,Brentford,Excel data integration - FWD
+128,excel_62,Frank Onyeka,Brentford,Brentford,Excel data integration - MID
+122,excel_63,Antoni Milambo,Brentford,Brentford,Excel data integration - MID
+107,excel_64,Keane Lewis-Potter,Brentford,Brentford,Excel data integration - DEF
+101,excel_65,Caoimhín Kelleher,Brentford,Brentford,Excel data integration - GK
+110,excel_66,Michael Kayode,Brentford,Brentford,Excel data integration - DEF
+126,excel_67,Mathias Jensen,Brentford,Brentford,Excel data integration - MID
+116,excel_68,Aaron Hickey,Brentford,Brentford,Excel data integration - DEF
+109,excel_69,Rico Henry,Brentford,Brentford,Excel data integration - DEF
+194,excel_70,Jordan Henderson,Brentford,Burnley,Excel data integration - MID
+61,excel_71,Sepp van den Berg,Brentford,Aston Villa,Excel data integration - DEF
+121,excel_72,Mikkel Damsgaard,Brentford,Brentford,Excel data integration - MID
+106,excel_73,Nathan Collins,Brentford,Brentford,Excel data integration - DEF
+123,excel_74,Fabio Carvalho,Brentford,Brentford,Excel data integration - FWD
+108,excel_75,Kristoffer Ajer,Brentford,Brentford,Excel data integration - DEF
+173,excel_76,Mats Wieffer,Brighton,Brighton,Excel data integration - DEF
+178,excel_77,Danny Welbeck,Brighton,Brighton,Excel data integration - FWD
+139,excel_78,Bart Verbruggen,Brighton,Brighton,Excel data integration - GK
+152,excel_79,Joël Veltman,Brighton,Brighton,Excel data integration - DEF
+158,excel_80,Georginio Rutter,Brighton,Brighton,Excel data integration - FWD
+164,excel_81,Matt O'Riley,Brighton,Brighton,Excel data integration - MID
+157,excel_82,Kaoru Mitoma,Brighton,Brighton,Excel data integration - FWD
+160,excel_83,Yankuba Minteh,Brighton,Brighton,Excel data integration - FWD
+170,excel_84,James Milner,Brighton,Brighton,Excel data integration - MID
+163,excel_86,Jack Hinshelwood,Brighton,Brighton,Excel data integration - MID
+41,excel_87,Jan Paul van Hecke,Brighton,Aston Villa,Excel data integration - DEF
+162,excel_88,Brajan Gruda,Brighton,Brighton,Excel data integration - MID
+10,excel_90,Lewis Dunk,Brighton,Arsenal,Excel data integration - DEF
+17,excel_91,Maxim De Cuyper,Brighton,Arsenal,Excel data integration - DEF
+144,excel_92,Diego Coppola,Brighton,Brighton,Excel data integration - DEF
+167,excel_93,Carlos Baleba,Brighton,Brighton,Excel data integration - MID
+46,excel_94,Yasin Ayari,Brighton,Aston Villa,Excel data integration - MID
+199,excel_95,Joe Worrall,Burnley,Burnley,Excel data integration - DEF
+187,excel_96,Kyle Walker,Burnley,Burnley,Excel data integration - DEF
+676,excel_97,Lesley Ugochukwu,Burnley,Burnley,Excel data integration - MID
+210,excel_98,Loum Tchaouna,Burnley,Burnley,Excel data integration - MID
+197,excel_99,Oliver Sonne,Burnley,Burnley,Excel data integration - DEF
+207,excel_100,Hannibal Mejbri,Burnley,Burnley,Excel data integration - MID
+209,excel_101,Josh Laurent,Burnley,Burnley,Excel data integration - MID
+192,excel_102,Quilindschy Hartman,Burnley,Burnley,Excel data integration - DEF
+217,excel_103,Lyle Foster,Burnley,Burnley,Excel data integration - FWD
+215,excel_104,Zian Flemming,Burnley,Burnley,Excel data integration - FWD
+191,excel_105,Maxime Estève,Burnley,Burnley,Excel data integration - DEF
+190,excel_106,Hjalmar Ekdal,Burnley,Burnley,Excel data integration - DEF
+206,excel_107,Marcus Edwards,Burnley,Burnley,Excel data integration - FWD
+19,excel_108,Martin Dúbravka,Burnley,Arsenal,Excel data integration - GK
+205,excel_109,Josh Cullen,Burnley,Burnley,Excel data integration - MID
+202,excel_110,Jacob Bruun Larsen,Burnley,Burnley,Excel data integration - FWD
+200,excel_111,Jaidon Anthony,Burnley,Burnley,Excel data integration - FWD
+238,excel_112,Estêvão Willian,Chelsea,Chelsea,Excel data integration - FWD
+246,excel_113,Andrey Santos,Chelsea,Chelsea,Excel data integration - MID
+545,excel_114,Robert Sánchez,Chelsea,Sunderland,Excel data integration - GK
+235,excel_115,Cole Palmer,Chelsea,Chelsea,Excel data integration - MID
+236,excel_116,Pedro Neto,Chelsea,Chelsea,Excel data integration - FWD
+249,excel_117,João Pedro,Chelsea,Chelsea,Excel data integration - MID
+353,excel_118,Reece James,Chelsea,Leeds,Excel data integration - DEF
+672,excel_119,Jorrel Hato,Chelsea,Chelsea,Excel data integration - DEF
+228,excel_120,Malo Gusto,Chelsea,Chelsea,Excel data integration - DEF
+239,excel_121,Jamie Gittens,Chelsea,Chelsea,Excel data integration - FWD
+243,excel_122,Tyrique George,Chelsea,Chelsea,Excel data integration - FWD
+230,excel_123,Wesley Fofana,Chelsea,Chelsea,Excel data integration - DEF
+237,excel_124,Enzo Fernández,Chelsea,Chelsea,Excel data integration - MID
+250,excel_125,Liam Delap,Chelsea,Chelsea,Excel data integration - FWD
+159,excel_126,Marc Cucurella,Chelsea,Brighton,Excel data integration - DEF
+226,excel_127,Trevoh Chalobah,Chelsea,Chelsea,Excel data integration - DEF
+241,excel_128,Moisés Caicedo,Chelsea,Chelsea,Excel data integration - MID
+232,excel_129,Tosin Adarabioyo,Chelsea,Chelsea,Excel data integration - DEF
+233,excel_130,Joshua Acheampong,Chelsea,Chelsea,Excel data integration - DEF
+85,excel_131,Adam Wharton,Crystal Palace,Bournemouth,Excel data integration - MID
+231,excel_132,Ismaila Sarr,Crystal Palace,Chelsea,Excel data integration - MID
+87,excel_133,Chris Richards,Crystal Palace,Bournemouth,Excel data integration - DEF
+256,excel_135,Daniel Muñoz,Crystal Palace,Crystal Palace,Excel data integration - DEF
+258,excel_136,Tyrick Mitchell,Crystal Palace,Crystal Palace,Excel data integration - DEF
+89,excel_137,Jean-Philippe Mateta,Crystal Palace,Bournemouth,Excel data integration - FWD
+272,excel_138,Jefferson Lerma,Crystal Palace,Crystal Palace,Excel data integration - MID
+257,excel_139,Maxence Lacroix,Crystal Palace,Crystal Palace,Excel data integration - DEF
+271,excel_140,Daichi Kamada,Crystal Palace,Crystal Palace,Excel data integration - MID
+227,excel_141,Will Hughes,Crystal Palace,Chelsea,Excel data integration - MID
+253,excel_142,Dean Henderson,Crystal Palace,Crystal Palace,Excel data integration - GK
+159,excel_143,Marc Guéhi,Crystal Palace,Brighton,Excel data integration - DEF
+266,excel_144,Eberechi Eze,Crystal Palace,Arsenal,Excel data integration - MID
+269,excel_145,Romain Esse,Crystal Palace,Crystal Palace,Excel data integration - FWD
+197,excel_146,Odsonne Édouard,Crystal Palace,Burnley,Excel data integration - FWD
+276,excel_147,Justin Devenny,Crystal Palace,Crystal Palace,Excel data integration - FWD
+263,excel_148,Nathaniel Clyne,Crystal Palace,Crystal Palace,Excel data integration - DEF
+353,excel_149,James Tarkowski,Everton,Leeds,Excel data integration - DEF
+194,excel_150,Jordan Pickford,Everton,Burnley,Excel data integration - GK
+520,excel_151,Jake O'Brien,Everton,Nott'm Forest,Excel data integration - DEF
+299,excel_152,Iliman Ndiaye,Everton,Everton,Excel data integration - FWD
+292,excel_153,Vitaliy Mykolenko,Everton,Everton,Excel data integration - DEF
+300,excel_154,Dwight McNeil,Everton,Everton,Excel data integration - FWD
+295,excel_155,Michael Keane,Everton,Everton,Excel data integration - DEF
+8,excel_156,Tim Iroegbunam,Everton,Arsenal,Excel data integration - MID
+251,excel_157,Jack Grealish,Everton,Chelsea,Excel data integration - FWD
+353,excel_158,James Garner,Everton,Leeds,Excel data integration - DEF
+302,excel_159,Idrissa Gana Gueye,Everton,Everton,Excel data integration - MID
+242,excel_160,Kiernan Dewsbury-Hall,Everton,Everton,Excel data integration - MID
+294,excel_161,Séamus Coleman,Everton,Everton,Excel data integration - FWD
+311,excel_162,Beto,Everton,Everton,Excel data integration - FWD
+310,excel_163,Thierno Barry,Everton,Everton,Excel data integration - FWD
+305,excel_164,Harrison Armstrong,Everton,Everton,Excel data integration - FWD
+301,excel_165,Carlos Alcaraz,Everton,Everton,Excel data integration - FWD
+671,excel_166,Harry Wilson,Fulham,West Ham,Excel data integration - FWD
+326,excel_167,Adama Traoré,Fulham,Fulham,Excel data integration - FWD
+322,excel_168,Kenny Tete,Fulham,Fulham,Excel data integration - DEF
+701,excel_169,Emile Smith Rowe,Fulham,Aston Villa,Excel data integration - MID
+269,excel_170,Ryan Sessegnon,Fulham,Crystal Palace,Excel data integration - DEF
+316,excel_171,Antonee Robinson,Fulham,Fulham,Excel data integration - DEF
+338,excel_172,Rodrigo Muniz,Fulham,Fulham,Excel data integration - FWD
+332,excel_173,Saša Lukić,Fulham,Fulham,Excel data integration - MID
+314,excel_174,Bernd Leno,Fulham,Fulham,Excel data integration - GK
+335,excel_175,Joshua King,Fulham,Fulham,Excel data integration - MID
+337,excel_176,Raúl Jiménez,Fulham,Fulham,Excel data integration - FWD
+43,excel_177,Alex Iwobi,Fulham,Aston Villa,Excel data integration - FWD
+321,excel_178,Jorge Cuenca,Fulham,Fulham,Excel data integration - DEF
+319,excel_179,Timothy Castagne,Fulham,Fulham,Excel data integration - FWD
+157,excel_180,Tom Cairney,Fulham,Brighton,Excel data integration - MID
+330,excel_181,Sander Berge,Fulham,Fulham,Excel data integration - MID
+318,excel_182,Calvin Bassey,Fulham,Fulham,Excel data integration - DEF
+317,excel_183,Joachim Andersen,Fulham,Fulham,Excel data integration - DEF
+210,excel_184,Ao Tanaka,Leeds United,Burnley,Excel data integration - MID
+343,excel_185,Pascal Struijk,Leeds United,Leeds,Excel data integration - DEF
+660,excel_186,Anton Stach,Leeds United,Leeds,Excel data integration - MID
+348,excel_187,Joe Rodon,Leeds United,Leeds,Excel data integration - DEF
+362,excel_188,Joël Piroe,Leeds United,Leeds,Excel data integration - FWD
+195,excel_189,Lucas Perri,Leeds United,Burnley,Excel data integration - GK
+698,excel_190,Noah Okafor,Leeds United,Leeds,Excel data integration - FWD
+365,excel_191,Lukas Nmecha,Leeds United,Leeds,Excel data integration - FWD
+493,excel_192,Sean Longstaff,Leeds United,Leeds,Excel data integration - MID
+353,excel_193,James Justin,Leeds United,Leeds,Excel data integration - DEF
+353,excel_194,Daniel James,Leeds United,Leeds,Excel data integration - FWD
+251,excel_195,Jack Harrison,Leeds United,Chelsea,Excel data integration - FWD
+5,excel_196,Gabriel Gudmundsson,Leeds United,Arsenal,Excel data integration - DEF
+356,excel_197,Ilia Gruev,Leeds United,Leeds,Excel data integration - MID
+351,excel_198,Wilfried Gnonto,Leeds United,Leeds,Excel data integration - FWD
+691,excel_199,Dominic Calvert-Lewin,Leeds United,Leeds,Excel data integration - FWD
+29,excel_200,Sam Byram,Leeds United,Arsenal,Excel data integration - DEF
+342,excel_201,Jayden Bogle,Leeds United,Leeds,Excel data integration - DEF
+354,excel_202,Ethan Ampadu,Leeds United,Leeds,Excel data integration - MID
+350,excel_203,Brenden Aaronson,Leeds United,Leeds,Excel data integration - FWD
+382,excel_204,Florian Wirtz,Liverpool,Liverpool,Excel data integration - MID
+76,excel_205,Virgil van Dijk,Liverpool,Bournemouth,Excel data integration - DEF
+387,excel_206,Dominik Szoboszlai,Liverpool,Liverpool,Excel data integration - DEF
+381,excel_207,Mohamed Salah,Liverpool,Liverpool,Excel data integration - FWD
+545,excel_208,Andrew Robertson,Liverpool,Sunderland,Excel data integration - DEF
+686,excel_209,Rio Ngumoha,Liverpool,Liverpool,Excel data integration - FWD
+386,excel_210,Alexis Mac Allister,Liverpool,Liverpool,Excel data integration - MID
+374,excel_211,Ibrahima Konaté,Liverpool,Liverpool,Excel data integration - DEF
+721,excel_212,Milos Kerkez,Liverpool,Bournemouth,Excel data integration - DEF
+388,excel_213,Curtis Jones,Liverpool,Liverpool,Excel data integration - MID
+390,excel_214,Ryan Gravenberch,Liverpool,Liverpool,Excel data integration - MID
+376,excel_215,Joe Gomez,Liverpool,Liverpool,Excel data integration - DEF
+384,excel_216,Cody Gakpo,Liverpool,Liverpool,Excel data integration - FWD
+370,excel_217,Jeremie Frimpong,Liverpool,Liverpool,Excel data integration - DEF
+61,excel_218,Wataru Endo,Liverpool,Aston Villa,Excel data integration - MID
+389,excel_219,Harvey Elliott,Liverpool,Aston Villa,Excel data integration - MID
+385,excel_221,Federico Chiesa,Liverpool,Liverpool,Excel data integration - FWD
+375,excel_222,Conor Bradley,Liverpool,Liverpool,Excel data integration - DEF
+579,excel_223,Alisson,Liverpool,Spurs,Excel data integration - GK
+353,excel_224,James Trafford,Manchester City,Leeds,Excel data integration - GK
+409,excel_225,John Stones,Manchester City,Man City,Excel data integration - DEF
+416,excel_226,Bernardo Silva,Manchester City,Man City,Excel data integration - MID
+421,excel_227,Rodri,Manchester City,Man City,Excel data integration - MID
+427,excel_228,Tijjani Reijnders,Manchester City,Man City,Excel data integration - MID
+411,excel_229,Nico O’Reilly,Manchester City,Man City,Excel data integration - MID
+127,excel_230,Matheus Nunes,Manchester City,Brentford,Excel data integration - DEF
+413,excel_231,Omar Marmoush,Manchester City,Man City,Excel data integration - FWD
+10,excel_232,Rico Lewis,Manchester City,Arsenal,Excel data integration - DEF
+406,excel_233,Abdukodir Khusanov,Manchester City,Man City,Excel data integration - DEF
+430,excel_234,Erling Haaland,Manchester City,Man City,Excel data integration - FWD
+89,excel_236,Phil Foden,Manchester City,Bournemouth,Excel data integration - MID
+418,excel_237,Jeremy Doku,Manchester City,Man City,Excel data integration - FWD
+229,excel_238,Rúben Dias,Manchester City,Chelsea,Excel data integration - DEF
+1,excel_239,Rayan Cherki,Manchester City,Arsenal,Excel data integration - MID
+424,excel_240,Oscar Bobb,Manchester City,Man City,Excel data integration - FWD
+405,excel_241,Nathan Aké,Manchester City,Man City,Excel data integration - DEF
+1,excel_242,Rayan Aït-Nouri,Manchester City,Arsenal,Excel data integration - DEF
+466,excel_243,Joshua Zirkzee,Manchester Utd,Man Utd,Excel data integration - FWD
+444,excel_244,Leny Yoro,Manchester Utd,Man Utd,Excel data integration - DEF
+459,excel_245,Manuel Ugarte,Manchester Utd,Man Utd,Excel data integration - MID
+443,excel_246,Luke Shaw,Manchester Utd,Man Utd,Excel data integration - DEF
+681,excel_247,Benjamin Šeško,Manchester Utd,Man Utd,Excel data integration - FWD
+455,excel_248,Mason Mount,Manchester Utd,Man Utd,Excel data integration - MID
+119,excel_249,Bryan Mbeumo,Manchester Utd,Man Utd,Excel data integration - MID
+438,excel_250,Noussair Mazraoui,Manchester Utd,Man Utd,Excel data integration - DEF
+458,excel_251,Kobbie Mainoo,Manchester Utd,Man Utd,Excel data integration - MID
+442,excel_252,Harry Maguire,Manchester Utd,Man Utd,Excel data integration - DEF
+17,excel_253,Matthijs de Ligt,Manchester Utd,Arsenal,Excel data integration - DEF
+447,excel_254,Ayden Heaven,Manchester Utd,Man Utd,Excel data integration - DEF
+449,excel_255,Bruno Fernandes,Manchester Utd,Man Utd,Excel data integration - MID
+441,excel_256,Patrick Dorgu,Manchester Utd,Man Utd,Excel data integration - DEF
+271,excel_257,Amad Diallo,Manchester Utd,Crystal Palace,Excel data integration - DEF
+440,excel_258,Diogo Dalot,Manchester Utd,Man Utd,Excel data integration - DEF
+407,excel_259,Matheus Cunha,Manchester Utd,Man City,Excel data integration - FWD
+457,excel_260,Casemiro,Manchester Utd,Man Utd,Excel data integration - MID
+554,excel_261,Altay Bayındır,Manchester Utd,Sunderland,Excel data integration - GK
+478,excel_262,Kieran Trippier,Newcastle Utd,Newcastle,Excel data integration - DEF
+491,excel_263,Sandro Tonali,Newcastle Utd,Newcastle,Excel data integration - MID
+684,excel_264,Malick Thiaw,Newcastle Utd,Newcastle,Excel data integration - DEF
+474,excel_265,Fabian Schär,Newcastle Utd,Newcastle,Excel data integration - DEF
+211,excel_266,Jacob Ramsey,Newcastle Utd,Burnley,Excel data integration - MID
+469,excel_267,Nick Pope,Newcastle Utd,Newcastle,Excel data integration - GK
+379,excel_268,William Osula,Newcastle Utd,Liverpool,Excel data integration - FWD
+481,excel_269,Jacob Murphy,Newcastle Utd,Newcastle,Excel data integration - FWD
+10,excel_270,Lewis Miley,Newcastle Utd,Arsenal,Excel data integration - MID
+477,excel_271,Valentino Livramento,Newcastle Utd,Newcastle,Excel data integration - DEF
+490,excel_272,Joelinton,Newcastle Utd,Newcastle,Excel data integration - MID
+10,excel_273,Lewis Hall,Newcastle Utd,Arsenal,Excel data integration - DEF
+488,excel_274,Bruno Guimarães,Newcastle Utd,Newcastle,Excel data integration - MID
+200,excel_275,Anthony Gordon,Newcastle Utd,Burnley,Excel data integration - FWD
+200,excel_276,Anthony Elanga,Newcastle Utd,Burnley,Excel data integration - FWD
+194,excel_277,Dan Burn,Newcastle Utd,Burnley,Excel data integration - DEF
+475,excel_278,Sven Botman,Newcastle Utd,Newcastle,Excel data integration - DEF
+487,excel_279,Harvey Barnes,Newcastle Utd,Newcastle,Excel data integration - FWD
+522,excel_280,Ryan Yates,Nott'ham Forest,Nott'm Forest,Excel data integration - MID
+87,excel_281,Chris Wood,Nott'ham Forest,Bournemouth,Excel data integration - FWD
+379,excel_282,Neco Williams,Nott'ham Forest,Liverpool,Excel data integration - DEF
+518,excel_283,Jota Silva,Nott'ham Forest,Nott'm Forest,Excel data integration - FWD
+502,excel_284,Matz Sels,Nott'ham Forest,Nott'm Forest,Excel data integration - GK
+521,excel_285,Ibrahim Sangaré,Nott'ham Forest,Nott'm Forest,Excel data integration - MID
+194,excel_286,Dan Ndoye,Nott'ham Forest,Burnley,Excel data integration - FWD
+506,excel_287,Murillo,Nott'ham Forest,Nott'm Forest,Excel data integration - DEF
+505,excel_288,Nikola Milenković,Nott'ham Forest,Nott'm Forest,Excel data integration - DEF
+353,excel_289,James Mcatee,Nott'ham Forest,Leeds,Excel data integration - FWD
+392,excel_290,Arnaud Kalimuendo,Nott'ham Forest,Liverpool,Excel data integration - FWD
+526,excel_291,Igor Jesus,Nott'ham Forest,Nott'm Forest,Excel data integration - FWD
+693,excel_292,Omari Hutchinson,Nott'ham Forest,Nott'm Forest,Excel data integration - FWD
+516,excel_293,Callum Hudson-Odoi,Nott'ham Forest,Nott'm Forest,Excel data integration - FWD
+498,excel_294,Morgan Gibbs-White,Nott'ham Forest,Newcastle,Excel data integration - MID
+389,excel_295,Elliot Anderson,Nott'ham Forest,Aston Villa,Excel data integration - MID
+144,excel_296,Ola Aina,Nott'ham Forest,Brighton,Excel data integration - DEF
+668,excel_297,Granit Xhaka,Sunderland,Sunderland,Excel data integration - MID
+553,excel_298,Chemsdine Talbi,Sunderland,Sunderland,Excel data integration - FWD
+542,excel_299,Jenson Seelt,Sunderland,Sunderland,Excel data integration - DEF
+94,excel_300,Noah Sadiki,Sunderland,Bournemouth,Excel data integration - MID
+316,excel_301,Robin Roefs,Sunderland,Fulham,Excel data integration - GK
+545,excel_302,Patrick Roberts,Sunderland,Sunderland,Excel data integration - MID
+87,excel_303,Chris Rigg,Sunderland,Bournemouth,Excel data integration - FWD
+694,excel_304,Nordi Mukiele,Sunderland,Sunderland,Excel data integration - DEF
+266,excel_305,Eliezer Mayenda,Sunderland,Arsenal,Excel data integration - FWD
+541,excel_306,Reinildo Mandava,Sunderland,Sunderland,Excel data integration - DEF
+10,excel_307,Enzo Le Fée,Sunderland,Arsenal,Excel data integration - FWD
+671,excel_308,Wilson Isidor,Sunderland,West Ham,Excel data integration - FWD
+532,excel_309,Trai Hume,Sunderland,Sunderland,Excel data integration - DEF
+252,excel_310,Marc Guiu,Sunderland,Chelsea,Excel data integration - FWD
+544,excel_311,Habib Diarra,Sunderland,Sunderland,Excel data integration - MID
+531,excel_312,Daniel Ballard,Sunderland,Sunderland,Excel data integration - DEF
+683,excel_313,Omar Alderete,Sunderland,Sunderland,Excel data integration - DEF
+543,excel_314,Simon Adingra,Sunderland,Sunderland,Excel data integration - FWD
+565,excel_315,Guglielmo Vicario,Tottenham,Spurs,Excel data integration - GK
+17,excel_316,Micky van de Ven,Tottenham,Arsenal,Excel data integration - DEF
+574,excel_317,Destiny Udogie,Tottenham,Spurs,Excel data integration - DEF
+584,excel_318,Mathys Tel,Tottenham,Spurs,Excel data integration - FWD
+573,excel_319,Djed Spence,Tottenham,Spurs,Excel data integration - DEF
+596,excel_320,Dominic Solanke,Tottenham,Spurs,Excel data integration - FWD
+569,excel_321,Cristian Romero,Tottenham,Spurs,Excel data integration - DEF
+597,excel_322,Richarlison,Tottenham,Spurs,Excel data integration - FWD
+568,excel_323,Pedro Porro,Tottenham,Spurs,Excel data integration - DEF
+249,excel_324,João Palhinha,Tottenham,Chelsea,Excel data integration - MID
+671,excel_325,Wilson Odobert,Tottenham,West Ham,Excel data integration - FWD
+231,excel_326,Pape Matar Sarr,Tottenham,Chelsea,Excel data integration - MID
+582,excel_327,Mohammed Kudus,Tottenham,Spurs,Excel data integration - FWD
+715,excel_328,Brennan Johnson,Tottenham,Nott'm Forest,Excel data integration - FWD
+591,excel_329,Archie Gray,Tottenham,Spurs,Excel data integration - MID
+731,excel_330,Kevin Danso,Tottenham,Fulham,Excel data integration - DEF
+195,excel_331,Lucas Bergvall,Tottenham,Burnley,Excel data integration - MID
+421,excel_332,Rodrigo Bentancur,Tottenham,Man City,Excel data integration - MID
+671,excel_333,Callum Wilson,West Ham,West Ham,Excel data integration - FWD
+353,excel_334,James Ward-Prowse,West Ham,Leeds,Excel data integration - MID
+16,excel_335,Aaron Wan-Bissaka,West Ham,Arsenal,Excel data integration - DEF
+187,excel_336,Kyle Walker-Peters,West Ham,Burnley,Excel data integration - DEF
+609,excel_337,Jean-Clair Todibo,West Ham,West Ham,Excel data integration - DEF
+615,excel_338,Crysencio Summerville,West Ham,West Ham,Excel data integration - FWD
+613,excel_339,Tomáš Souček,West Ham,West Ham,Excel data integration - MID
+623,excel_341,Freddie Potts,West Ham,West Ham,Excel data integration - MID
+195,excel_342,Lucas Paquetá,West Ham,Burnley,Excel data integration - MID
+606,excel_343,Konstantinos Mavropanos,West Ham,West Ham,Excel data integration - DEF
+605,excel_344,Max Kilman,West Ham,West Ham,Excel data integration - DEF
+621,excel_345,Andy Irving,West Ham,West Ham,Excel data integration - MID
+679,excel_346,Mads Hermansen,West Ham,West Ham,Excel data integration - GK
+625,excel_347,Niclas Füllkrug,West Ham,West Ham,Excel data integration - FWD
+449,excel_348,Mateus Fernandes,West Ham,Man Utd,Excel data integration - FWD
+5,excel_349,El Hadji Malick Diouf,West Ham,Arsenal,Excel data integration - DEF
+624,excel_350,Jarrod Bowen,West Ham,West Ham,Excel data integration - FWD
+607,excel_351,Nayef Aguerd,West Ham,West Ham,Excel data integration - DEF
+251,excel_352,Jackson Tchatchoua,Wolves,Chelsea,Excel data integration - MID
+202,excel_353,Jørgen Strand Larsen,Wolves,Burnley,Excel data integration - FWD
+628,excel_354,José Sá,Wolves,Wolves,Excel data integration - GK
+509,excel_355,David Møller Wolfe,Wolves,Nott'm Forest,Excel data integration - MID
+286,excel_356,Marshall Munetsi,Wolves,Crystal Palace,Excel data integration - FWD
+645,excel_357,Fer López,Wolves,Wolves,Excel data integration - MID
+638,excel_359,Ki-Jana Hoever,Wolves,Wolves,Excel data integration - MID
+635,excel_361,Toti Gomes,Wolves,Wolves,Excel data integration - DEF
+421,excel_362,Rodrigo Gomes,Wolves,Man City,Excel data integration - MID
+249,excel_363,João Gomes,Wolves,Chelsea,Excel data integration - MID
+255,excel_364,Matt Doherty,Wolves,Crystal Palace,Excel data integration - DEF
+633,excel_365,Santiago Bueno,Wolves,Wolves,Excel data integration - DEF
+633,excel_366,Hugo Bueno,Wolves,Wolves,Excel data integration - MID
+644,excel_367,Jean-Ricner Bellegarde,Wolves,Wolves,Excel data integration - FWD
+663,excel_368,Jhon Arias,Wolves,Wolves,Excel data integration - FWD
+643,excel_369,André,Wolves,Wolves,Excel data integration - MID
+554,excel_370,Emmanuel Agbadou,Wolves,Sunderland,Excel data integration - DEF

@@ -16,6 +16,25 @@ from .fpl_api import FPLAPIClient
 logger = get_logger(__name__)
 
 
+def get_user_picks(entry_id: int, gameweek: int) -> Optional[List[Dict]]:
+    """
+    Get user picks for a specific gameweek.
+    
+    Args:
+        entry_id: FPL entry ID
+        gameweek: Target gameweek
+        
+    Returns:
+        List of player picks or None if failed
+    """
+    try:
+        client = FPLPicksClient()
+        return client.get_user_picks(entry_id, gameweek)
+    except Exception as e:
+        logger.error(f"Failed to get user picks: {e}")
+        return None
+
+
 class FPLPicksClient:
     """
     Client for managing FPL picks and team state.
@@ -185,7 +204,54 @@ class FPLPicksClient:
             else:
                 gameweek = 1
         
+        # Set entry_id in the FPL API client
+        self.fpl_api.entry_id = self.fpl_api.entry_id
         return self.fpl_api.get_my_team(gameweek)
+    
+    def get_user_picks(self, entry_id: int, gameweek: int) -> Optional[List[Dict]]:
+        """
+        Get user picks for a specific gameweek.
+        
+        Args:
+            entry_id: FPL entry ID
+            gameweek: Target gameweek
+            
+        Returns:
+            List of player picks or None if failed
+        """
+        try:
+            # Set entry_id in the FPL API client
+            self.fpl_api.entry_id = entry_id
+            
+            # Get team data for the gameweek
+            team_data = self.fpl_api.get_my_team(gameweek)
+            if not team_data:
+                logger.error(f"Failed to get team data for entry {entry_id}, GW {gameweek}")
+                return None
+            
+            # Extract picks from team data
+            picks = team_data.get('picks', [])
+            if not picks:
+                logger.error(f"No picks found for entry {entry_id}, GW {gameweek}")
+                return None
+            
+            # Convert picks to the expected format
+            player_picks = []
+            for pick in picks:
+                player_picks.append({
+                    'element_id': pick.get('element'),
+                    'position': pick.get('position'),
+                    'is_captain': pick.get('is_captain', False),
+                    'is_vice_captain': pick.get('is_vice_captain', False),
+                    'multiplier': pick.get('multiplier', 1)
+                })
+            
+            logger.info(f"Retrieved {len(player_picks)} picks for entry {entry_id}, GW {gameweek}")
+            return player_picks
+            
+        except Exception as e:
+            logger.error(f"Failed to get user picks for entry {entry_id}, GW {gameweek}: {e}")
+            return None
     
     def get_team_changes_since_gw1(self, current_gw: int) -> Optional[Dict]:
         """

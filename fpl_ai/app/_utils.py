@@ -6,7 +6,6 @@ session state across dashboard pages.
 """
 
 import pandas as pd
-import numpy as np
 import streamlit as st
 from pathlib import Path
 import json
@@ -39,11 +38,55 @@ def load_config() -> Dict[str, Any]:
     }
 
 
+# --- Simple persisted user settings (e.g., saved Entry ID) ---
+def _user_settings_path() -> Path:
+    cache_dir = Path(__file__).parent.parent / "cache"
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    return cache_dir / "user_settings.json"
+
+
+def load_user_settings() -> Dict[str, Any]:
+    """Load persisted user settings from cache file."""
+    path = _user_settings_path()
+    if path.exists():
+        try:
+            with open(path, 'r') as f:
+                return json.load(f)
+        except Exception:
+            return {}
+    return {}
+
+
+def save_user_settings(settings: Dict[str, Any]) -> None:
+    """Persist user settings to cache file."""
+    try:
+        with open(_user_settings_path(), 'w') as f:
+            json.dump(settings, f)
+    except Exception as e:
+        print(f"Error saving user settings: {e}")
+        pass
+
+
+def get_saved_entry_id() -> Optional[int]:
+    settings = load_user_settings()
+    eid = settings.get("entry_id")
+    try:
+        return int(eid) if eid is not None else None
+    except Exception:
+        return None
+
+
+def set_saved_entry_id(entry_id: int) -> None:
+    settings = load_user_settings().copy()
+    settings["entry_id"] = int(entry_id)
+    save_user_settings(settings)
+
+
 @st.cache_data
 def get_current_gw() -> int:
     """Get current gameweek (cached)."""
     try:
-        from src.common.timeutil import get_current_gw
+        from fpl_ai.src.common.timeutil import get_current_gw
         return get_current_gw()
     except:
         return 1
@@ -51,60 +94,64 @@ def get_current_gw() -> int:
 
 def get_artifacts_dir() -> Path:
     """Get artifacts directory path."""
-    config = load_config()
-    return Path(config.get("io", {}).get("out_dir", "artifacts"))
+    # Use fpl_ai/artifacts as the single source of truth
+    fpl_ai_artifacts = Path(__file__).parent.parent / "artifacts"
+    return fpl_ai_artifacts
 
 
 @st.cache_data
 def check_predictions_available(gameweek: int) -> bool:
     """Check if predictions are available for a gameweek."""
+    # Use fpl_ai/artifacts as the single source of truth
     artifacts_dir = get_artifacts_dir()
     pred_file = artifacts_dir / f"predictions_gw{gameweek}.csv"
     return pred_file.exists()
 
 
-@st.cache_data
-def load_predictions(gameweek: int) -> Optional[pd.DataFrame]:
-    """Load predictions for a gameweek."""
-    artifacts_dir = get_artifacts_dir()
-    pred_file = artifacts_dir / f"predictions_gw{gameweek}.csv"
-    
-    if pred_file.exists():
-        try:
-            return pd.read_csv(pred_file)
-        except Exception as e:
-            st.error(f"Error loading predictions: {e}")
-    
-    return None
+# Note: load_predictions function moved to fpl_ai.app.data_loaders for better organization
+
+
+# Note: enrich_predictions_with_fpl_data function moved to fpl_ai.app.data_loaders for better organization
+
+# Legacy function removed - use fpl_ai.app.data_loaders.enrich_with_current_fpl_data instead
 
 
 @st.cache_data
 def load_model_performance() -> Dict[str, Any]:
     """Load model performance metrics."""
     artifacts_dir = get_artifacts_dir()
-    models_dir = artifacts_dir / "models"
     
     performance = {}
     positions = ["GK", "DEF", "MID", "FWD"]
     
-    # Load CV results
-    for position in positions:
-        cv_file = models_dir / f"cv_{position}.json"
-        if cv_file.exists():
-            try:
-                with open(cv_file, 'r') as f:
-                    cv_data = json.load(f)
-                performance[f"cv_{position}"] = cv_data
-            except Exception:
-                pass
+    # Load CV results from artifacts directory
+    cv_file = artifacts_dir / "cv_metrics.json"
+    if cv_file.exists():
+        try:
+            with open(cv_file, 'r') as f:
+                cv_data = json.load(f)
+            performance["cv_metrics"] = cv_data
+        except Exception:
+            pass
     
     # Load feature importance
     for position in positions:
-        fi_file = models_dir / f"fi_{position}.csv"
+        fi_file = artifacts_dir / f"fi_{position}.csv"
         if fi_file.exists():
             try:
                 fi_df = pd.read_csv(fi_file)
                 performance[f"fi_{position}"] = fi_df
+            except Exception:
+                pass
+    
+    # Load residual analysis
+    for position in positions:
+        residuals_file = artifacts_dir / f"residuals_{position}.json"
+        if residuals_file.exists():
+            try:
+                with open(residuals_file, 'r') as f:
+                    residuals_data = json.load(f)
+                performance[f"residuals_{position}"] = residuals_data
             except Exception:
                 pass
     
@@ -170,6 +217,12 @@ def build_confidence_intervals(df: pd.DataFrame, minutes_uncertainty: float = 0.
     
     # If Monte Carlo results are available, use them
     if all(col in df.columns for col in ['mean', 'std', 'p10', 'p90']):
+        return result_df
+    
+    # Check for Monte Carlo results with different column names
+    if all(col in df.columns for col in ['mean_points', 'std_points', 'p10', 'p90']):
+        result_df['mean'] = result_df['mean_points']
+        result_df['std'] = result_df['std_points']
         return result_df
     
     # Otherwise, build simple confidence intervals
@@ -314,8 +367,8 @@ def display_confidence_chart(df: pd.DataFrame, top_n: int = 15) -> None:
 
 
 def get_gameweek_selector() -> int:
-    """Get gameweek from session state or default."""
-    return st.session_state.get('selected_gw', get_current_gw())
+    """Get gameweek from session state or default to GW7."""
+    return st.session_state.get('selected_gw', 7)
 
 
 def display_formation_grid(

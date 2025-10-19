@@ -70,14 +70,22 @@ class CacheManager:
                 metadata = json.load(f)
             
             created_at = datetime.fromisoformat(metadata['created_at'])
-            return datetime.now() - created_at > timedelta(seconds=ttl)
+            # Handle timezone-aware vs timezone-naive comparison
+            now = datetime.now()
+            if created_at.tzinfo is not None and now.tzinfo is None:
+                # created_at is timezone-aware, make now timezone-aware
+                now = now.replace(tzinfo=created_at.tzinfo)
+            elif created_at.tzinfo is None and now.tzinfo is not None:
+                # now is timezone-aware, make created_at timezone-aware
+                created_at = created_at.replace(tzinfo=now.tzinfo)
+            return now - created_at > timedelta(seconds=ttl)
         except (json.JSONDecodeError, KeyError, ValueError):
             return True
     
     def _save_metadata(self, cache_path: Path, original_key: str, data_type: str):
         """Save cache metadata."""
         metadata = {
-            'created_at': datetime.now().isoformat(),
+            'created_at': datetime.now().replace(tzinfo=None).isoformat(),
             'key': original_key,
             'data_type': data_type,
             'file_size': cache_path.stat().st_size if cache_path.exists() else 0
@@ -95,8 +103,20 @@ class CacheManager:
             Tuple of (serialized_bytes, data_type)
         """
         if isinstance(data, pd.DataFrame):
-            # Use parquet for DataFrames (better compression + preserves dtypes)
-            return data.to_parquet(), "dataframe"
+            # Clean DataFrame before serialization to avoid parquet conversion errors
+            try:
+                # Convert object columns to string to avoid serialization issues
+                df_clean = data.copy()
+                for col in df_clean.columns:
+                    if df_clean[col].dtype == 'object':
+                        df_clean[col] = df_clean[col].astype(str)
+                
+                # Use parquet for DataFrames (better compression + preserves dtypes)
+                return df_clean.to_parquet(), "dataframe"
+            except Exception as e:
+                # Fallback to pickle if parquet fails
+                logger.debug(f"Parquet serialization failed, using pickle: {e}")
+                return pickle.dumps(data), "pickle"
         elif isinstance(data, dict) or isinstance(data, list):
             # Use JSON for simple structures
             return json.dumps(data, indent=2).encode(), "json"
@@ -150,7 +170,7 @@ class CacheManager:
             return data
             
         except Exception as e:
-            logger.warning(f"Failed to read cache {key}: {e}")
+            logger.debug(f"Failed to read cache {key}: {e}")
             return None
     
     def set(self, key: str, data: Any, category: str = "general", ttl: Optional[int] = None):
@@ -179,7 +199,7 @@ class CacheManager:
             logger.debug(f"Cache set: {key} ({category}, {len(serialized_data)} bytes)")
             
         except Exception as e:
-            logger.error(f"Failed to cache {key}: {e}")
+            logger.debug(f"Failed to cache {key}: {e}")
     
     def delete(self, key: str, category: str = "general"):
         """Delete item from cache."""
@@ -225,7 +245,15 @@ class CacheManager:
                         metadata = json.load(f)
                     
                     created_at = datetime.fromisoformat(metadata['created_at'])
-                    if datetime.now() - created_at > timedelta(seconds=self.default_ttl):
+                    # Handle timezone-aware vs timezone-naive comparison
+                    now = datetime.now()
+                    if created_at.tzinfo is not None and now.tzinfo is None:
+                        # created_at is timezone-aware, make now timezone-aware
+                        now = now.replace(tzinfo=created_at.tzinfo)
+                    elif created_at.tzinfo is None and now.tzinfo is not None:
+                        # now is timezone-aware, make created_at timezone-aware
+                        created_at = created_at.replace(tzinfo=now.tzinfo)
+                    if now - created_at > timedelta(seconds=self.default_ttl):
                         cache_file.unlink()
                         metadata_file.unlink()
                         cleared_count += 1
@@ -293,3 +321,38 @@ def cache_set(key: str, data: Any, category: str = "general", ttl: Optional[int]
 def cache_delete(key: str, category: str = "general"):
     """Delete item from cache."""
     get_cache().delete(key, category)
+
+
+# Compatibility class for existing code that expects 'Cache' class
+class Cache:
+    """
+    Compatibility wrapper around CacheManager for existing code.
+    """
+
+    def __init__(self, cache_dir: Optional[str] = None):
+        """
+        Initialize cache compatibility wrapper.
+
+        Args:
+            cache_dir: Optional cache directory path
+        """
+        self.cache_manager = CacheManager(cache_dir)
+
+    def get(self, key: str, category: str = "general", ttl: Optional[int] = None) -> Optional[Any]:
+        """Get item from cache."""
+        return self.cache_manager.get(key, category, ttl)
+
+    def set(self, key: str, data: Any, category: str = "general", ttl: Optional[int] = None):
+        """Store item in cache."""
+        self.cache_manager.set(key, data, category, ttl)
+
+    def delete(self, key: str, category: str = "general"):
+        """Delete item from cache."""
+        self.cache_manager.delete(key, category)
+
+    def clear(self, category: Optional[str] = None):
+        """Clear cache entries."""
+        if category:
+            self.cache_manager.clear_category(category)
+        else:
+            self.cache_manager.clear_all()

@@ -33,10 +33,15 @@ class FormationValidator:
         self.squad_size = 15
         self.starting_xi_size = 11
         
-        # Valid formations (DEF-MID-FWD)
+        # Valid formations (DEF-MID-FWD) - Prioritizing 3-4 defense for better FPL scoring
         self.valid_formations = [
-            (3, 4, 3), (3, 5, 2), (4, 3, 3), (4, 4, 2), (4, 5, 1),
-            (5, 2, 3), (5, 3, 2), (5, 4, 1)
+            (3, 5, 2),  # 3-5-2 - Best for FPL (3 DEF, 5 MID, 2 FWD)
+            (3, 4, 3),  # 3-4-3 - Strong 3 DEF formation
+            (4, 4, 2),  # 4-4-2 - Classic balanced formation
+            (4, 3, 3),  # 4-3-3 - 4 DEF with 3 FWD
+            (4, 5, 1),  # 4-5-1 - 4 DEF with 5 MID
+            (5, 3, 2),  # 5-3-2 - Avoid if possible (5 DEF)
+            (5, 4, 1)   # 5-4-1 - Avoid if possible (5 DEF)
         ]
         
         logger.info("Formation validator initialized")
@@ -140,7 +145,7 @@ class FormationValidator:
             elif bootstrap_data and 'element_id' in player:
                 element_id = player['element_id']
                 player_data = next(
-                    (p for p in bootstrap_data['elements'] if p['id'] == element_id),
+                    (p for p in bootstrap_data.get('elements', []) if p.get('id') is not None and int(p['id']) == int(element_id)),
                     None
                 )
                 if player_data:
@@ -203,14 +208,15 @@ class FormationValidator:
         """Get enhanced player information from bootstrap data."""
         players_info = []
         
-        elements = {elem['id']: elem for elem in bootstrap_data['elements']}
-        teams = {team['id']: team for team in bootstrap_data['teams']}
-        positions = {pos['id']: pos for pos in bootstrap_data['element_types']}
+        elements = {int(elem.get('id', 0)): elem for elem in bootstrap_data.get('elements', []) if elem.get('id') is not None}
+        teams = {team.get('id', 0): team for team in bootstrap_data.get('teams', []) if team.get('id') is not None}
+        positions = {pos.get('id', 0): pos for pos in bootstrap_data.get('element_types', []) if pos.get('id') is not None}
         
         for player in squad:
             element_id = player.get('element_id', player.get('id'))
+            element_id = int(element_id) if element_id is not None else None
             
-            if element_id in elements:
+            if element_id and element_id in elements:
                 elem_data = elements[element_id]
                 team_data = teams.get(elem_data['team'], {})
                 pos_data = positions.get(elem_data['element_type'], {})
@@ -339,13 +345,26 @@ class FormationValidator:
         if not available_players:
             return [], (0, 0, 0)
         
+        # Remove duplicates first
+        unique_players = []
+        seen_ids = set()
+        for player in available_players:
+            player_id = player.get('element_id')
+            if player_id and player_id not in seen_ids:
+                unique_players.append(player)
+                seen_ids.add(player_id)
+        
         # Group players by position
         by_position = {'GK': [], 'DEF': [], 'MID': [], 'FWD': []}
         
-        for player in available_players:
+        for player in unique_players:
             position = player.get('position', '')
             if position in by_position:
                 by_position[position].append(player)
+        
+        # Debug logging
+        logger.info(f"Players by position: GK={len(by_position['GK'])}, DEF={len(by_position['DEF'])}, MID={len(by_position['MID'])}, FWD={len(by_position['FWD'])}")
+        logger.info(f"Total unique players: {len(unique_players)}")
         
         # Sort by score (assuming 'score' field exists)
         for position in by_position:
@@ -362,6 +381,12 @@ class FormationValidator:
                 continue
                 
             requirements = self.get_position_requirements(formation)
+            
+            # Debug logging for formation requirements
+            logger.info(f"Trying formation {formation}: {requirements}")
+            for pos, req_count in requirements.items():
+                available = len(by_position[pos])
+                logger.info(f"  {pos}: need {req_count}, have {available}")
             
             # Check if we have enough players for this formation
             can_form = all(

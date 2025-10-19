@@ -18,9 +18,11 @@ app_dir = Path(__file__).parent.parent
 src_dir = app_dir.parent / "src"
 sys.path.insert(0, str(src_dir))
 
-from app._utils import (
-    get_gameweek_selector, load_predictions, get_artifacts_dir, load_config
+from fpl_ai.app._utils import (
+    get_gameweek_selector, get_artifacts_dir, load_config,
+    get_saved_entry_id
 )
+from fpl_ai.app.data_loaders import load_predictions_cached
 
 # Page configuration
 st.set_page_config(
@@ -63,7 +65,7 @@ def save_team_state(state: Dict[str, Any], filename: str) -> None:
 def initialize_team_from_entry_id(entry_id: int, bank: float = 0.0) -> Optional[Dict[str, Any]]:
     """Initialize team from FPL Entry ID."""
     try:
-        from src.plan.multiweek_planner import MultiWeekPlanner
+        from fpl_ai.src.plan.multiweek_planner import MultiWeekPlanner
         
         planner = MultiWeekPlanner()
         team_state = planner.initialize_from_gw1_team(
@@ -90,7 +92,7 @@ def initialize_team_from_csv(uploaded_file, bank: float = 0.0) -> Optional[Dict[
         
         team_data = df.to_dict('records')
         
-        from src.plan.multiweek_planner import MultiWeekPlanner
+        from fpl_ai.src.plan.multiweek_planner import MultiWeekPlanner
         
         planner = MultiWeekPlanner()
         team_state = planner.initialize_from_gw1_team(
@@ -112,14 +114,14 @@ def run_transfer_planning(
 ) -> Optional[Dict[str, Any]]:
     """Run transfer planning."""
     try:
-        from src.plan.multiweek_planner import MultiWeekPlanner
+        from fpl_ai.src.plan.multiweek_planner import MultiWeekPlanner
         
         planner = MultiWeekPlanner()
         
         # Load predictions for horizon
         predictions_by_gw = {}
         for gw in range(start_gw, start_gw + horizon + 1):
-            pred_df = load_predictions(gw)
+            pred_df = load_predictions_cached(gw)
             if pred_df is not None:
                 predictions_by_gw[gw] = pred_df
         
@@ -443,11 +445,12 @@ def main():
         
         elif init_method == "FPL Entry ID":
             # Initialize from FPL Entry ID
+            default_eid = get_saved_entry_id()
             entry_id = st.number_input(
                 "FPL Entry ID",
                 min_value=1,
-                value=None,
-                help="Your FPL Entry ID"
+                value=default_eid if default_eid is not None else 1,
+                help="Your FPL Entry ID (pre-filled from Home screen)"
             )
             
             if entry_id and st.button("Initialize from Entry ID"):
@@ -790,7 +793,7 @@ def main():
         # Check predictions availability
         predictions_count = 0
         for gw in range(start_gw, start_gw + horizon + 1):
-            if load_predictions(gw) is not None:
+            if load_predictions_cached(gw) is not None:
                 predictions_count += 1
         
         if predictions_count < horizon:

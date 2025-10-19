@@ -84,9 +84,14 @@ def _bench_rate(lineups_df: pd.DataFrame) -> float:
         
         # Current match data
         current_match = match_group.copy()
-        current_match['minutes'] = pd.to_numeric(
-            current_match.get('minutes', 0), errors='coerce'
-        ).fillna(0)
+        # Ensure we get a Series before calling fillna
+        minutes_val = current_match.get('minutes', 0)
+        numeric_series = pd.to_numeric(minutes_val, errors='coerce')
+        if isinstance(numeric_series, pd.Series):
+            current_match['minutes'] = numeric_series.fillna(0)
+        else:
+            # If it's a scalar, use it directly
+            current_match['minutes'] = numeric_series
         
         # Focus on attackers (MID/FWD)
         attackers = current_match[
@@ -178,7 +183,14 @@ def _team_lineup_table(team_id: str, season: str, client: FBRAPIClient) -> Tuple
                 
                 # Standardize column names
                 lineup['started'] = lineup.get('started', lineup.get('is_start', False)).astype(bool)
-                lineup['minutes'] = pd.to_numeric(lineup.get('minutes', 0), errors='coerce').fillna(0)
+                # Ensure we get a Series before calling fillna
+                minutes_val = lineup.get('minutes', 0)
+                numeric_series = pd.to_numeric(minutes_val, errors='coerce')
+                if isinstance(numeric_series, pd.Series):
+                    lineup['minutes'] = numeric_series.fillna(0)
+                else:
+                    # If it's a scalar, use it directly
+                    lineup['minutes'] = numeric_series
                 lineup['player_id'] = lineup.get('player_id', lineup.get('id', '')).astype(str)
                 lineup['position'] = lineup.get('position', '').astype(str)
                 lineup['match_seq'] = i
@@ -225,6 +237,20 @@ def compute_rotation_metrics_for_team(team_id: str, season: str) -> Dict:
         - bench_rate: Rate of attackers being benched
         - n_matches: Number of matches analyzed
     """
+    from ..common.config import get_config
+    config = get_config()
+    
+    # Return default metrics if FBR API is disabled
+    if not config.get("fbrapi.enabled", False):
+        logger.info(f"FBR API disabled, returning default rotation metrics for team {team_id}")
+        return {
+            "xi_change_pct": 0.05,
+            "starts_variance": 0.05,
+            "median_minutes_shortfall": 0.05,
+            "bench_rate": 0.05,
+            "n_matches": 0
+        }
+    
     client = FBRAPIClient()
     
     lineups_df, start_sets = _team_lineup_table(team_id, season, client)
@@ -294,3 +320,4 @@ def map_metrics_to_prior(metrics: Dict) -> float:
     
     logger.debug(f"Mapped metrics to prior: {prior:.3f} (floor: {floor}, cap: {cap})")
     return float(prior)
+

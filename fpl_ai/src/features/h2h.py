@@ -68,12 +68,12 @@ def _calculate_raw_h2h_stats(df: pd.DataFrame, min_matches: int) -> pd.DataFrame
             'h2h_matches': len(group),
             'h2h_points_avg': group['points'].mean(),
             'h2h_points_std': group['points'].std(),
-            'h2h_goals_avg': group.get('goals_scored', group.get('goals', 0)).mean(),
-            'h2h_assists_avg': group.get('assists', 0).mean(),
-            'h2h_minutes_avg': group.get('minutes', 0).mean(),
-            'h2h_bonus_avg': group.get('bonus', 0).mean(),
-            'h2h_bps_avg': group.get('bps', 0).mean(),
-            'h2h_clean_sheets_rate': group.get('clean_sheets', 0).mean(),
+            'h2h_goals_avg': group.get('goals_scored', group.get('goals', pd.Series([0]))).mean(),
+            'h2h_assists_avg': group.get('assists', pd.Series([0])).mean(),
+            'h2h_minutes_avg': group.get('minutes', pd.Series([0])).mean(),
+            'h2h_bonus_avg': group.get('bonus', pd.Series([0])).mean(),
+            'h2h_bps_avg': group.get('bps', pd.Series([0])).mean(),
+            'h2h_clean_sheets_rate': group.get('clean_sheets', pd.Series([0])).mean(),
             'h2h_home_points': group[group.get('home_away') == 'H']['points'].mean() if 'home_away' in group.columns else np.nan,
             'h2h_away_points': group[group.get('home_away') == 'A']['points'].mean() if 'home_away' in group.columns else np.nan
         }
@@ -101,13 +101,13 @@ def _apply_bayesian_shrinkage(
     
     # Calculate global means for shrinkage targets
     global_means = {
-        'points': all_data.get('points', 0).mean(),
-        'goals': all_data.get('goals_scored', all_data.get('goals', 0)).mean(),
-        'assists': all_data.get('assists', 0).mean(),
-        'minutes': all_data.get('minutes', 0).mean(),
-        'bonus': all_data.get('bonus', 0).mean(),
-        'bps': all_data.get('bps', 0).mean(),
-        'clean_sheets': all_data.get('clean_sheets', 0).mean()
+        'points': all_data.get('points', pd.Series([0])).mean(),
+        'goals': all_data.get('goals_scored', all_data.get('goals', pd.Series([0]))).mean(),
+        'assists': all_data.get('assists', pd.Series([0])).mean(),
+        'minutes': all_data.get('minutes', pd.Series([0])).mean(),
+        'bonus': all_data.get('bonus', pd.Series([0])).mean(),
+        'bps': all_data.get('bps', pd.Series([0])).mean(),
+        'clean_sheets': all_data.get('clean_sheets', pd.Series([0])).mean()
     }
     
     # Apply shrinkage to key statistics
@@ -145,13 +145,24 @@ def _calculate_opponent_features(h2h_stats: pd.DataFrame, all_data: pd.DataFrame
     # Calculate opponent defensive strength (affects player scoring)
     if 'team_goals_against' in all_data.columns:
         opponent_defense = all_data.groupby(['team_id', 'gameweek'])['team_goals_against'].mean().groupby('team_id').mean()
-        enhanced_stats['opponent_defense_strength'] = enhanced_stats['opponent_id'].map(opponent_defense).fillna(1.0)
+        # Ensure we get a Series before calling fillna
+        defense_mapped = enhanced_stats['opponent_id'].map(opponent_defense)
+        if isinstance(defense_mapped, pd.Series):
+            enhanced_stats['opponent_defense_strength'] = defense_mapped.fillna(1.0)
+        else:
+            # If it's a scalar, create a Series with the same length
+            enhanced_stats['opponent_defense_strength'] = pd.Series([defense_mapped] * len(enhanced_stats), index=enhanced_stats.index)
     
     # Player's improvement/decline against this opponent over time
+    # Handle different kickoff_time column names after merges
+    kickoff_col = 'kickoff_time' if 'kickoff_time' in all_data.columns else 'kickoff_time_x' if 'kickoff_time_x' in all_data.columns else 'kickoff_time_y'
+
     for (player_id, opponent_id), group_data in all_data.groupby(['element_id', 'opponent_id']):
         if len(group_data) >= 3:
-            # Calculate trend over time
-            group_data = group_data.sort_values('kickoff_time')
+            # Calculate trend over time - ensure kickoff_time is datetime before sorting
+            if kickoff_col in group_data.columns:
+                group_data[kickoff_col] = pd.to_datetime(group_data[kickoff_col], utc=True, errors='coerce')
+            group_data = group_data.sort_values(kickoff_col)
             x = np.arange(len(group_data))
             y = group_data['points'].values
             
@@ -165,7 +176,13 @@ def _calculate_opponent_features(h2h_stats: pd.DataFrame, all_data: pd.DataFrame
             enhanced_stats.loc[mask, 'h2h_trend'] = trend
     
     # Fill missing trend values
-    enhanced_stats['h2h_trend'] = enhanced_stats.get('h2h_trend', 0).fillna(0)
+    # Ensure we get a Series before calling fillna
+    trend_series = enhanced_stats.get('h2h_trend', 0)
+    if isinstance(trend_series, pd.Series):
+        enhanced_stats['h2h_trend'] = trend_series.fillna(0)
+    else:
+        # If it's a scalar, create a Series with the same length
+        enhanced_stats['h2h_trend'] = pd.Series([trend_series] * len(enhanced_stats), index=enhanced_stats.index)
     
     return enhanced_stats
 
@@ -315,13 +332,27 @@ def calculate_historical_fixture_performance(
     
     historical_features = player_data.copy()
     
-    # Get current date for filtering
-    current_date = pd.Timestamp.now()
+    # Get current date for filtering (timezone-aware to match FPL data)
+    current_date = pd.Timestamp.now(tz='UTC')
     cutoff_date = current_date - pd.DateOffset(years=years_back)
-    
-    if 'kickoff_time' in historical_features.columns:
-        historical_features['kickoff_time'] = pd.to_datetime(historical_features['kickoff_time'])
-        recent_data = historical_features[historical_features['kickoff_time'] >= cutoff_date]
+
+    # Handle different kickoff_time column names
+    kickoff_col = 'kickoff_time' if 'kickoff_time' in historical_features.columns else 'kickoff_time_x' if 'kickoff_time_x' in historical_features.columns else 'kickoff_time_y'
+
+    if kickoff_col in historical_features.columns:
+        # Handle timezone-aware datetime conversion
+        historical_features[kickoff_col] = pd.to_datetime(historical_features[kickoff_col], utc=True, errors='coerce')
+
+        # Ensure timezone compatibility for date comparison
+        kickoff_series = historical_features[kickoff_col]
+        if kickoff_series.dt.tz is None:
+            # If kickoff times are timezone-naive, make cutoff_date naive too
+            cutoff_date = cutoff_date.tz_convert(None)
+        elif kickoff_series.dt.tz != cutoff_date.tzinfo:
+            # Convert cutoff_date to match kickoff times timezone
+            cutoff_date = cutoff_date.tz_convert(kickoff_series.dt.tz)
+
+        recent_data = historical_features[historical_features[kickoff_col] >= cutoff_date]
         
         # Performance in similar gameweeks (e.g., GW1 vs GW1)
         if 'gameweek' in recent_data.columns:
@@ -337,13 +368,13 @@ def calculate_historical_fixture_performance(
             )
         
         # Performance in similar months (seasonal patterns)
-        if 'kickoff_time' in recent_data.columns:
-            recent_data['month'] = recent_data['kickoff_time'].dt.month
+        if kickoff_col in recent_data.columns:
+            recent_data['month'] = recent_data[kickoff_col].dt.month
             month_performance = recent_data.groupby(['element_id', 'month'])['points'].agg(['mean', 'count'])
             month_performance.columns = ['historical_month_points', 'historical_month_count']
             
             # Add month to main data and merge
-            historical_features['month'] = pd.to_datetime(historical_features.get('kickoff_time', pd.Timestamp.now())).dt.month
+            historical_features['month'] = pd.to_datetime(historical_features.get(kickoff_col, pd.Timestamp.now())).dt.month
             historical_features = historical_features.merge(
                 month_performance,
                 left_on=['element_id', 'month'],
@@ -360,7 +391,11 @@ def calculate_historical_fixture_performance(
     for col in fill_columns:
         if col in historical_features.columns:
             if 'points' in col:
-                historical_features[col] = historical_features[col].fillna(historical_features.get('points', 0).mean())
+                points_col = historical_features.get('points', pd.Series([0]))
+                if isinstance(points_col, pd.Series):
+                    historical_features[col] = historical_features[col].fillna(points_col.mean())
+                else:
+                    historical_features[col] = historical_features[col].fillna(float(points_col))
             else:
                 historical_features[col] = historical_features[col].fillna(0)
     

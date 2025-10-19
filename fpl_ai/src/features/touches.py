@@ -76,7 +76,14 @@ def _calculate_base_involvement(df: pd.DataFrame) -> pd.DataFrame:
         df['est_passes'] = base_passes
         
         # Estimate completion rate by position
-        df['est_pass_completion'] = df.get('position', 'MID').map(position_pass_rates).fillna(0.8)
+        # Ensure we get a Series before calling fillna
+        position_col = df.get('position', 'MID')
+        completion_mapped = position_col.map(position_pass_rates)
+        if isinstance(completion_mapped, pd.Series):
+            df['est_pass_completion'] = completion_mapped.fillna(0.8)
+        else:
+            # If it's a scalar, create a Series with the same length
+            df['est_pass_completion'] = pd.Series([completion_mapped] * len(df), index=df.index)
         df['passes_completed'] = df['est_passes'] * df['est_pass_completion']
     
     # Calculate involvement intensity
@@ -231,7 +238,13 @@ def calculate_consistency_metrics(df: pd.DataFrame) -> pd.DataFrame:
         
         # Consistency score (lower std = more consistent)
         consistency_col = f"consistency_r{window}"
-        df[consistency_col] = 1 / (1 + df[points_std_col].fillna(0))
+        # Ensure we get a Series before calling fillna
+        std_series = df[points_std_col]
+        if isinstance(std_series, pd.Series):
+            df[consistency_col] = 1 / (1 + std_series.fillna(0))
+        else:
+            # If it's a scalar, create a Series with the same length
+            df[consistency_col] = 1 / (1 + pd.Series([std_series] * len(df), index=df.index))
     
     # Minutes consistency
     for window in [3, 5, 8]:
@@ -242,7 +255,13 @@ def calculate_consistency_metrics(df: pd.DataFrame) -> pd.DataFrame:
         
         # Minutes reliability
         minutes_reliability_col = f"minutes_reliability_r{window}"
-        df[minutes_reliability_col] = 1 / (1 + df[minutes_std_col].fillna(0))
+        # Ensure we get a Series before calling fillna
+        minutes_std_series = df[minutes_std_col]
+        if isinstance(minutes_std_series, pd.Series):
+            df[minutes_reliability_col] = 1 / (1 + minutes_std_series.fillna(0))
+        else:
+            # If it's a scalar, create a Series with the same length
+            df[minutes_reliability_col] = 1 / (1 + pd.Series([minutes_std_series] * len(df), index=df.index))
     
     return df
 

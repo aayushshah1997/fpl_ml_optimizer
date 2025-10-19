@@ -462,8 +462,17 @@ class MonteCarloSimulator:
             rng = np.random.default_rng(seed)
             
             # Get mean projections and uncertainties
-            mean_points = players_df.get("proj_points", players_df.get("proj", np.zeros(n_players))).to_numpy(dtype=float)
-            expected_minutes = players_df.get("expected_minutes", np.full(n_players, 75.0)).to_numpy(dtype=float)
+            proj_data = players_df.get("proj_points", players_df.get("proj", np.zeros(n_players)))
+            if isinstance(proj_data, pd.Series):
+                mean_points = proj_data.to_numpy(dtype=float)
+            else:
+                mean_points = np.array(proj_data, dtype=float)
+            
+            minutes_data = players_df.get("expected_minutes", np.full(n_players, 75.0))
+            if isinstance(minutes_data, pd.Series):
+                expected_minutes = minutes_data.to_numpy(dtype=float)
+            else:
+                expected_minutes = np.array(minutes_data, dtype=float)
             
             # Calculate base uncertainties (use prediction_std if available, else position defaults)
             base_uncertainties = []
@@ -487,19 +496,31 @@ class MonteCarloSimulator:
             if settings:
                 # International window uncertainty bump
                 if "is_intl_window" in players_df.columns:
-                    intl_mask = players_df["is_intl_window"].fillna(False).astype(bool).to_numpy()
+                    intl_series = players_df["is_intl_window"].fillna(False).astype(bool)
+                    if isinstance(intl_series, pd.Series):
+                        intl_mask = intl_series.to_numpy()
+                    else:
+                        intl_mask = np.array(intl_series, dtype=bool)
                     intl_bump = float(settings.get("mc", {}).get("intl_minutes_uncertainty_add", 0.10))
                     base_uncertainties = base_uncertainties * (1.0 + intl_mask * intl_bump)
                 
                 # Manager rotation uncertainty
                 if "manager_rotation_prior" in players_df.columns:
-                    rotation_prior = players_df["manager_rotation_prior"].fillna(0.0).to_numpy(dtype=float)
+                    rotation_data = players_df["manager_rotation_prior"].fillna(0.0)
+                    if isinstance(rotation_data, pd.Series):
+                        rotation_prior = rotation_data.to_numpy(dtype=float)
+                    else:
+                        rotation_prior = np.array(rotation_data, dtype=float)
                     rotation_mult = float(settings.get("mc", {}).get("manager_rotation_sigma_mult", 0.30))
                     base_uncertainties = base_uncertainties * (1.0 + rotation_prior * rotation_mult)
                 
                 # Low-tier league uncertainty bump
                 if "prior_league_uncertainty" in players_df.columns:
-                    league_uncertainty = players_df["prior_league_uncertainty"].fillna(0.0).to_numpy(dtype=float)
+                    league_data = players_df["prior_league_uncertainty"].fillna(0.0)
+                    if isinstance(league_data, pd.Series):
+                        league_uncertainty = league_data.to_numpy(dtype=float)
+                    else:
+                        league_uncertainty = np.array(league_data, dtype=float)
                     base_uncertainties = base_uncertainties * (1.0 + league_uncertainty)
             
             # Generate correlated scenarios if we have team information
@@ -550,7 +571,8 @@ class MonteCarloSimulator:
             
         except Exception as e:
             logger.error(f"Error in simulate_player_matrix: {e}")
-            return np.array([]), []
+            # Return empty array with proper shape to avoid indexing errors
+            return np.array([]).reshape(0, 0), []
 
     def simulate_captain_scenarios(
         self,
@@ -672,10 +694,122 @@ def simulate_points(team_df: pd.DataFrame, S: int, seed: int, minutes_uncertaint
     """
     scenarios_matrix, player_ids = simulate_player_matrix(team_df, S, seed, minutes_uncertainty, settings)
     
-    if scenarios_matrix.size == 0:
+    if scenarios_matrix.size == 0 or not isinstance(scenarios_matrix, np.ndarray):
         return {"scenarios": np.array([])}
     
     # Sum across players for team total
     team_scenarios = np.sum(scenarios_matrix, axis=1)
     
     return {"scenarios": team_scenarios}
+
+
+def run_mc_simulation(prediction_data: pd.DataFrame, settings: Optional[Dict] = None) -> Dict[str, Any]:
+    """
+    Run Monte Carlo simulation for player predictions.
+    
+    Args:
+        prediction_data: DataFrame with player predictions
+        settings: Optional simulation settings
+        
+    Returns:
+        Simulation results
+    """
+    try:
+        if prediction_data.empty:
+            logger.warning("No prediction data provided for MC simulation")
+            return {"error": "No prediction data"}
+        
+        # Default settings
+        default_settings = {
+            "num_scenarios": 2000,
+            "seed": 42,
+            "minutes_uncertainty": 0.10
+        }
+        
+        if settings:
+            default_settings.update(settings)
+        
+        # Apply a conservative minutes floor for likely starters
+        try:
+            if {'expected_minutes', 'avail_prob', 'rotation_risk'}.issubset(set(prediction_data.columns)):
+                starters_mask = (prediction_data['avail_prob'] >= 0.8) | (prediction_data['rotation_risk'] <= 0.2)
+                prediction_data.loc[starters_mask, 'expected_minutes'] = prediction_data.loc[starters_mask, 'expected_minutes'].clip(lower=70)
+        except Exception:
+            pass
+
+        # Run simulation
+        scenarios_matrix, player_ids = simulate_player_matrix(
+            prediction_data,
+            default_settings["num_scenarios"],
+            default_settings["seed"],
+            default_settings["minutes_uncertainty"],
+            default_settings
+        )
+        
+        if scenarios_matrix.size == 0:
+            return {"error": "Failed to generate scenarios"}
+        
+        # Calculate summary statistics
+        player_summaries = []
+        for i, player_id in enumerate(player_ids):
+            player_scenarios = scenarios_matrix[:, i]
+            
+            # Check if player exists in prediction_data and handle missing players safely
+            player_filtered = prediction_data[prediction_data['element_id'] == player_id]
+            if player_filtered.empty:
+                # Create safe defaults for missing player
+                player_data = {
+                    'web_name': 'Unknown',
+                    'position': 'Unknown'
+                }
+                logger.warning(f"Player {player_id} not found in prediction data, using defaults")
+            else:
+                player_data = player_filtered.iloc[0]
+            
+            summary = {
+                'element_id': player_id,
+                'web_name': player_data.get('web_name', 'Unknown'),
+                'position': player_data.get('position', 'Unknown'),
+                'mean_points': np.mean(player_scenarios),
+                'std_points': np.std(player_scenarios),
+                'p10': np.percentile(player_scenarios, 10),
+                'p50': np.percentile(player_scenarios, 50),
+                'p90': np.percentile(player_scenarios, 90),
+                'prob_double_digits': np.mean(player_scenarios >= 10),
+                'prob_15_plus': np.mean(player_scenarios >= 15),
+                # Add essential fields for team optimization
+                'now_cost': player_data.get('now_cost', 0),
+                'proj_points': np.mean(player_scenarios),  # Same as mean_points for optimizer
+                'team_id': player_data.get('team_id', 0),
+                'team_name': player_data.get('team_name', 'Unknown'),
+                # Add rolling features for form analysis
+                'points_r3': player_data.get('points_r3', 0),
+                'points_r5': player_data.get('points_r5', 0),
+                'points_r8': player_data.get('points_r8', 0),
+                'goals_r3': player_data.get('goals_r3', 0),
+                'goals_r5': player_data.get('goals_r5', 0),
+                'goals_r8': player_data.get('goals_r8', 0),
+                'assists_r3': player_data.get('assists_r3', 0),
+                'assists_r5': player_data.get('assists_r5', 0),
+                'assists_r8': player_data.get('assists_r8', 0),
+                'minutes_r3': player_data.get('minutes_r3', 0),
+                'minutes_r5': player_data.get('minutes_r5', 0),
+                'minutes_r8': player_data.get('minutes_r8', 0)
+            }
+            player_summaries.append(summary)
+        
+        results_df = pd.DataFrame(player_summaries)
+        
+        logger.info(f"MC simulation completed: {len(player_summaries)} players, {default_settings['num_scenarios']} scenarios")
+        
+        return {
+            "success": True,
+            "scenarios_matrix": scenarios_matrix,
+            "player_ids": player_ids,
+            "player_summaries": results_df,
+            "settings": default_settings
+        }
+        
+    except Exception as e:
+        logger.error(f"MC simulation failed: {e}")
+        return {"error": str(e)}

@@ -5,7 +5,7 @@
 # --- TRAINING WINDOW & STAGING ---
 training:
   # How much data to train on (before the previous GW):
-  # By default: last 3 full PL seasons + current season-to-date (= 4 seasons back).
+  # Updated for 2025-26 season: use historical data from 2016-25 + current season-to-date
   seasons_back: 4                  # includes current + previous 3
   league_id: 9                     # PL (FBR league ID)
   extra_leagues: "auto"        # instead of fixed list; discover dynamically from FBR
@@ -14,8 +14,8 @@ training:
   target:
     name: "points_next"
   staging:
-    mode: "auto"       # "auto" | "warm" | "full"
-    warm_until_gw: 8   # GW < 8 -> Warm Start; GW >= 8 -> Full ML
+    mode: "full"       # force full training always
+    warm_until_gw: 0   # no warm mode
   sample_weighting:
     # w = exp(-lambda * games_ago) * season_boost * league_strength_factor
     lambda_games: 0.08              # decay factor for game recency
@@ -85,7 +85,7 @@ modeling:
 
 # --- EXTERNAL FEEDS ---
 fbrapi:
-  enabled: true
+  enabled: false
   base_url: "https://fbrapi.com"
   rate_limit_sec: 3.0
   cache_dir: "cache/fbrapi"
@@ -182,7 +182,7 @@ planner:
     per_pos: 20             # top N players per position to consider
   future_fixtures_weight: 1.0  # weight for fixture difficulty
   dgw_bonus: 0.5              # bonus for double gameweeks
-  formation_preferences: ["3-5-2", "3-4-3", "4-4-2", "4-3-3", "4-5-1"]
+  formation_preferences: ["3-5-2", "3-4-3", "4-4-2", "4-3-3", "4-5-1"]  # Prioritizing 3-4 defense for better FPL scoring
 
 # --- TRANSFER STRATEGY (auto-optimization) ---
 strategy:
@@ -221,8 +221,8 @@ backtest:
 autotune:
   enabled: true
   study_name: "fpl_auto_tune"
-  n_trials: 60                      # increase for deeper search
-  timeout_min: 60                   # stop after N minutes (guards)
+  n_trials: 20                      # 20 trials for comprehensive search
+  timeout_min: 28800                # 20 days (20 trials × 70min each = ~24 hours max)
   pruner: "median"                  # median | none
   persist_best_to: "artifacts/tuning/best_settings.yaml"
   write_back_to_settings: false     # if true, overwrite settings.yaml after tuning

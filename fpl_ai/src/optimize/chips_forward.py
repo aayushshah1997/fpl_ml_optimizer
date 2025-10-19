@@ -210,7 +210,11 @@ class ChipsOptimizer:
                 is_dgw = self._is_double_gameweek(gw, gw_predictions)
                 
                 # Average uncertainty
-                avg_uncertainty = bench_predictions.get('prediction_std', 2.0).mean()
+                prediction_std = bench_predictions.get('prediction_std', 2.0)
+                if isinstance(prediction_std, pd.Series):
+                    avg_uncertainty = prediction_std.mean()
+                else:
+                    avg_uncertainty = float(prediction_std)
                 confidence = 1 / (1 + avg_uncertainty)
                 
                 bb_opportunities[gw] = {
@@ -411,7 +415,11 @@ class ChipsOptimizer:
         if predictions.empty:
             return False
         
-        avg_projection = predictions['proj_points'].mean()
+        proj_points = predictions.get('proj_points', pd.Series([0]))
+        if isinstance(proj_points, pd.Series):
+            avg_projection = proj_points.mean()
+        else:
+            avg_projection = float(proj_points)
         # DGW players typically have 1.5-2x normal projections
         return avg_projection > 4.5  # Rough threshold
     

@@ -92,10 +92,13 @@ def retrain_models(
     logger.info("Starting model retraining...")
     
     # Load configuration
+    best_settings = None
+    settings_source = "default"
     if settings_override_path:
         logger.info(f"Using optimized settings from {settings_override_path}")
         try:
             cfg = load_settings(settings_override_path)
+            settings_source = "override_file"
         except Exception as e:
             logger.error(f"Failed to load settings from {settings_override_path}: {e}")
             logger.info("Falling back to default settings")
@@ -106,9 +109,11 @@ def retrain_models(
         if best_settings != load_settings():  # Check if we got different settings
             logger.info("Using best settings from previous tuning")
             cfg = best_settings
+            settings_source = "best_found"
         else:
             logger.info("Using current settings (no tuning results found)")
             cfg = load_settings()
+            settings_source = "default"
     
     # Determine current gameweek
     if current_gw is None:
@@ -152,7 +157,7 @@ def retrain_models(
     trainer = LGBMTrainer()
     
     # Apply configuration overrides if using optimized settings
-    if settings_override_path or best_settings != load_settings():
+    if settings_override_path or (best_settings is not None and best_settings != load_settings()):
         # Update trainer configuration dynamically
         trainer.gbm_params = cfg.get("modeling", {}).get("gbm", trainer.gbm_params)
         
@@ -182,7 +187,7 @@ def retrain_models(
         "training_samples": len(training_data),
         "models_trained": list(training_results.get("position_results", {}).keys()),
         "current_gw": current_gw,
-        "settings_source": settings_override_path or "best_found" if best_settings != load_settings() else "default"
+        "settings_source": settings_source
     }
 
 

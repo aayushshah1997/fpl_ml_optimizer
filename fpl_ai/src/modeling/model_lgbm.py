@@ -168,7 +168,17 @@ class LGBMTrainer:
             logger.error("Position column not found in training data")
             return pd.DataFrame()
         
-        pos_data = df[df['position'] == position].copy()
+        # Map position codes to full names
+        position_mapping = {
+            'GK': 'Goalkeeper',
+            'DEF': 'Defender', 
+            'MID': 'Midfielder',
+            'FWD': 'Forward'
+        }
+        
+        # Try both the position code and the full name
+        position_name = position_mapping.get(position, position)
+        pos_data = df[df['position'].isin([position, position_name])].copy()
         
         # Remove rows with missing target
         target_col = self.config.get("training.target.name", "points_next")
@@ -225,45 +235,52 @@ class LGBMTrainer:
         return X, y, sample_weights
     
     def _get_position_features(self, df: pd.DataFrame, position: str) -> List[str]:
-        """Get feature list for specific position."""
-        # Base features for all positions
-        base_features = [
-            # Recent form (rolling averages)
+        """Get feature list for specific position.
+
+        Enforces a strict per‑position whitelist. In particular, GK models should not
+        include attacking or set‑piece taker features that are irrelevant for
+        goalkeepers. This keeps the learning signal clean and prevents confusing
+        plots (e.g., "Attacking" slice for GK).
+        """
+
+        # Base features shared across positions (non‑attacking, generally applicable)
+        common_base_features = [
+            # Recent minutes/form
             'points_r3', 'points_r5', 'points_r8',
             'minutes_r3', 'minutes_r5', 'minutes_r8',
-            'goals_r3', 'goals_r5', 'assists_r3', 'assists_r5',
-            
+
             # Availability and rotation
             'avail_prob', 'rotation_risk', 'fixture_congestion',
-            
-            # Set pieces
-            'pen_taker', 'fk_taker', 'corner_taker',
-            
+
             # Team form
             'team_form_r3', 'team_form_r5', 'attack_strength_r3', 'defense_strength_r3',
-            
+
             # Fixture context
             'fixture_difficulty', 'home_away_H',
-            
+
             # Market signals
             'now_cost', 'selected_by_percent', 'transfers_in', 'transfers_out',
             'value_per_point', 'transfer_momentum',
-            
+
             # H2H features
             'h2h_points_avg_shrunk', 'h2h_goals_avg_shrunk',
-            
+
             # League strength and prior quality
             'league_strength_mult', 'is_lowtier_league', 'prior_league_uncertainty'
         ]
         
         # Position-specific features
         if position == 'GK':
+            # GK: strictly no attacking or set‑piece taker features
             position_features = [
                 'saves_r3', 'saves_r5', 'clean_sheets_r3', 'clean_sheets_r5',
                 'goals_conceded_r3', 'goals_conceded_r5',
                 'penalty_saves_r3', 'penalty_saves_r5',
                 'gk_vs_high_scoring'
             ]
+            base_features = common_base_features.copy()
+            # Remove explicit attacking team strength if we want GK to focus on defensive context
+            base_features = [f for f in base_features if f != 'attack_strength_r3']
         elif position == 'DEF':
             position_features = [
                 'clean_sheets_r3', 'clean_sheets_r5', 'goals_conceded_r3',
@@ -271,17 +288,30 @@ class LGBMTrainer:
                 'tackles_r3', 'interceptions_r3', 'clearances_r3',
                 'def_vs_strong_attack'
             ]
+            # Outfield positions include attacking and set‑piece context
+            base_features = common_base_features + [
+                'goals_r3', 'goals_r5', 'assists_r3', 'assists_r5',
+                'pen_taker', 'fk_taker', 'corner_taker',
+            ]
         elif position == 'MID':
             position_features = [
                 'creativity_r3', 'creativity_r5', 'key_passes_r3', 'key_passes_r5',
                 'big_chances_created_r3', 'expected_assists_r3',
                 'passes_completed_r3', 'involvement_intensity_r3'
             ]
+            base_features = common_base_features + [
+                'goals_r3', 'goals_r5', 'assists_r3', 'assists_r5',
+                'pen_taker', 'fk_taker', 'corner_taker',
+            ]
         else:  # FWD
             position_features = [
                 'shots_r3', 'shots_r5', 'shots_on_target_r3',
                 'big_chances_missed_r3', 'expected_goals_r3', 'expected_goals_r5',
                 'att_vs_weak_defense', 'penalty_conversion_r5'
+            ]
+            base_features = common_base_features + [
+                'goals_r3', 'goals_r5', 'assists_r3', 'assists_r5',
+                'pen_taker', 'fk_taker', 'corner_taker',
             ]
         
         # Combine features
@@ -451,6 +481,10 @@ class LGBMTrainer:
                 num_boost_round=int(np.mean([300] * cv_folds)),  # Use average rounds
                 callbacks=[lgb.log_evaluation(0)]
             )
+            
+            # Get feature importance from final model
+            final_importance = final_model.feature_importance(importance_type='gain')
+            feature_importance = final_importance
             
             # Calculate metrics
             metrics = calculate_metrics(y.values, oof_predictions, sample_weights.values)
@@ -778,8 +812,8 @@ class LGBMPredictor:
             # Make predictions
             raw_predictions = model.predict(X, num_iteration=model.best_iteration)
             
-            # Create results DataFrame
-            results = pos_data[['element_id', 'web_name', 'team_name', 'position', 'now_cost']].copy()
+            # Create results DataFrame - preserve all original columns including rolling features
+            results = pos_data.copy()
             results['proj_points'] = raw_predictions
             
             # Add expected minutes if available (for per-90 calculations)
@@ -812,24 +846,50 @@ class LGBMPredictor:
         position: str
     ) -> pd.DataFrame:
         """Prepare features for prediction."""
-        # Get available features
+        logger.info(f"Preparing features for {position} - Expected: {len(features)} features")
+        logger.info(f"Available columns in data: {len(pos_data.columns)}")
+
+        # Get available features and add missing ones with default values
         available_features = []
-        
+        missing_features = []
+
         for feature in features:
             if feature in pos_data.columns:
                 available_features.append(feature)
             else:
-                logger.debug(f"Missing feature for {position}: {feature}")
-        
+                missing_features.append(feature)
+                logger.warning(f"Missing feature for {position}: {feature}")
+
+        logger.info(f"Available features for {position}: {len(available_features)}/{len(features)}")
+
         if not available_features:
+            logger.error(f"No features available for {position}")
             return pd.DataFrame()
-        
+
         X = pos_data[available_features].copy()
         
+        # Add missing features with default values
+        for feature in missing_features:
+            X[feature] = 0.0  # Default value for missing features
+            logger.info(f"Added missing feature {feature} with default value 0.0")
+
+        # Ensure all expected features are present in the correct order
+        X = X[features]
+        logger.info(f"Feature matrix shape: {X.shape}")
+
+        # Check for missing values before filling
+        missing_vals = X.isnull().sum().sum()
+        logger.info(f"Missing values before filling: {missing_vals}")
+
         # Fill missing values using same logic as training
         trainer = LGBMTrainer()
         X = trainer._fill_missing_values(X, position)
-        
+
+        # Check for missing values after filling
+        missing_vals_after = X.isnull().sum().sum()
+        logger.info(f"Missing values after filling: {missing_vals_after}")
+        logger.info(f"Final feature matrix shape: {X.shape}")
+
         return X
     
     def _load_models(self) -> bool:

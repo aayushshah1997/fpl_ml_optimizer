@@ -22,7 +22,7 @@ app_dir = Path(__file__).parent.parent
 src_dir = app_dir.parent / "src"
 sys.path.insert(0, str(src_dir))
 
-from app._utils import get_artifacts_dir
+from fpl_ai.app._utils import get_artifacts_dir
 
 # Page configuration
 st.set_page_config(
@@ -152,7 +152,12 @@ def display_study_overview(summary: Dict[str, Any]):
         
         with col1:
             seasons = backtest_config.get('seasons', [])
-            st.write(f"**Seasons:** {len(seasons)} ({seasons[0]} to {seasons[-1]})" if seasons else "N/A")
+            if seasons and len(seasons) >= 2:
+                st.write(f"**Seasons:** {len(seasons)} ({seasons[0]} to {seasons[-1]})")
+            elif seasons and len(seasons) == 1:
+                st.write(f"**Seasons:** {len(seasons)} ({seasons[0]})")
+            else:
+                st.write("**Seasons:** N/A")
         
         with col2:
             start_gw = backtest_config.get('start_gw', 'N/A')

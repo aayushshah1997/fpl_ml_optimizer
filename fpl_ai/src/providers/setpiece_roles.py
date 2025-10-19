@@ -168,7 +168,7 @@ class SetPieceRolesManager:
                     'source': 'inferred_ewma',
                     'confidence': max(pen_share, fk_share, corner_share),
                     'matches_analyzed': len(group),
-                    'last_updated': pd.Timestamp.now().isoformat()
+                    'last_updated': pd.Timestamp.now(tz='UTC').isoformat()
                 })
         
         # Use proxy methods if match events available
@@ -240,7 +240,13 @@ class SetPieceRolesManager:
         # Fill missing values
         for col in ['pen_share', 'fk_share', 'corner_share']:
             if col in all_data.columns:
-                all_data[col] = pd.to_numeric(all_data[col], errors='coerce').fillna(0.0)
+                # Ensure we get a Series before calling fillna
+                numeric_series = pd.to_numeric(all_data[col], errors='coerce')
+                if isinstance(numeric_series, pd.Series):
+                    all_data[col] = numeric_series.fillna(0.0)
+                else:
+                    # If it's a scalar, create a Series with the same length
+                    all_data[col] = pd.Series([numeric_series] * len(all_data), index=all_data.index)
         
         # Merge with priority-based selection
         final_roles = []
@@ -261,7 +267,7 @@ class SetPieceRolesManager:
                 'corner_share': 0.0,
                 'source': [],
                 'confidence': 0.0,
-                'last_updated': pd.Timestamp.now().isoformat()
+                'last_updated': pd.Timestamp.now(tz='UTC').isoformat()
             }
             
             # Merge each role type, taking highest priority non-zero value

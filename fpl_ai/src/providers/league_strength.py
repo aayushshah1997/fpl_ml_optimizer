@@ -208,3 +208,4 @@ def get_new_leagues_report(settings: dict = None) -> Dict[str, Dict]:
         }
     
     return report
+
